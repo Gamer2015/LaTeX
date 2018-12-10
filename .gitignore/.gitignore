@@ -1,0 +1,21 @@
+# ignore everything
+*
+
+# except tex files & folders
+!*.tex
+!*/
+
+# and except everything in resources folders
+!*/resources/*
+
+# latex build files
+#*.aux
+#*.fdb_latexmk
+#*.fls
+#*.log
+# not *.pdf, this is handled seperately
+# we want source pdfs but not the compiled ones
+#*.synctex.gz
+#*.toc
+
+# correct pdf files
