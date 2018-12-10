@@ -1,0 +1,98 @@
+% Source: http://home.sandiego.edu/~dhoffoss/latex/latex-paper-template.tex
+
+\setlength{\textwidth}{17.2cm}     % if you change this, consider changing
+\setlength{\evensidemargin}{-.3cm} % side margins to retain centering
+\setlength{\oddsidemargin}{-.3cm}
+
+\setlength{\textheight}{23cm}   % if you change this, consider changing
+\setlength{\topmargin}{-2cm}  % top margin to retain centering
+\setlength{\headsep}{1.6cm}
+
+%---------------------- These packages below add functionality to your version of LaTeX --------------
+%---------------------- You might not use all of them --------------------------------------
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{float}
+\usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{makeidx}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{lastpage}
+\usepackage{url}
+
+
+%------------------------- Customized Header --------------------------------------------------------
+\fancyhead{}
+\fancyfoot{}			
+\lhead{Team \# 123}
+\rhead{Page \thepage\ of \pageref{LastPage}}
+
+%---------- the symbols below will give you the blackboard bold of R, T, etc. ----------
+\DeclareSymbolFont{AMSb}{U}{msb}{m}{n}  
+\DeclareMathSymbol{\Sph}{\mathbin}{AMSb}{"53} 
+\DeclareMathSymbol{\R}{\mathbin}{AMSb}{"52}
+\DeclareMathSymbol{\T}{\mathbin}{AMSb}{"54} 
+\DeclareMathSymbol{\Z}{\mathbin}{AMSb}{"5A}
+\DeclareMathSymbol{\K}{\mathbin}{AMSb}{"4B}
+
+%------------------------- Theorem and Proof Environments -------------------------------------------------
+
+% This section defines all the environments you might use.  Just type
+% \begin{theorem, or corollary, or whatever}, then the optional name of the
+% theorem inside {} (or empty {} if no name), then body of the theorem,
+% corollary, whatever, also inside {} then \end{theorem, corollary, whatever}
+%
+% Notice when I use them in the paper, I put an optional "argument" to the function
+% and this gives a name to the theorem
+
+\newenvironment{theorem}[1]{\vspace{.9cm}\noindent    {\bf Theorem {#1}}}{\vspace{.1cm}}
+\newenvironment{lemma}[1]{\vspace{.9cm}\noindent    {\bf Lemma {#1}}}{\vspace{.1cm}}
+\newenvironment{corollary}[1]{\vspace{.9cm}\noindent    {\bf Corollary {#1}}}{\vspace{.1cm}}
+\newenvironment{definition}{\vspace{.9cm}\noindent {\bf Definition}}{\vspace{.1cm}}
+\def\qed{\hfill $\Box$}
+\renewenvironment{proof}{\vspace{.5cm}   \noindent{\bf Proof: }}{\qed \vspace{1cm}}
+ 
+%\theoremstyle{definition}
+%\newtheorem{notation}[theorem]{Notation}
+%\newtheorem{properties}[theorem]{Properties}
+%\newtheorem{remark}[theorem]{Remark}
+%\newtheorem{example}[theorem]{Example}
+%\newtheorem{claim}[theorem]{Claim}
+%\newtheorem{observation}[theorem]{Observation}
+%\newtheorem{definition}[theorem]{Definition}
+
+
+% ---------------------- Define case environment ------------------------------
+
+\newcounter{case}
+
+\newenvironment{case}[1]{\stepcounter{case} \addvspace{.5\baselineskip} \noindent\textbf{Case \thecase}. \textit{#1}}{\hfill\fbox{Case \thecase}}
+
+%\newtheorem{case}{Case}
+\newtheorem{subcase}{Case}[case]
+\newtheorem{sub2case}{Case}[subcase]
+%\newtheorem{sub3case}{Case}[sub2case]
+%\newtheorem{sub4case}{Case}[sub3case]
+
+
+%Picture inclusion
+
+\newcommand\pic[3]{
+\begin{figure}[H] \begin{center} 
+\epsfig{file=#1, height=#2pt} 
+\end{center} 
+\caption{#3} 
+\end{figure}
+}
+
+\def\inj{\text{inj}}
+\def\diam{\text{diam}}
+\def\area{\text{area}}
+\def\length{\text{length}}
+
