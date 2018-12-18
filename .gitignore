@@ -1,9 +1,17 @@
 # ignore everything
 *
 
-# except tex files & folders
-!*.tex
+# except tex folders
 !*/
 
-# and except everything in resources folders
+# except tex & python
+!*.tex
+!*.py
+
+# and except everything in resource/resources folders
+!*/resource/*
 !*/resources/*
+
+# maybe for the future
+# !*/include/*
+# !*/source/*
