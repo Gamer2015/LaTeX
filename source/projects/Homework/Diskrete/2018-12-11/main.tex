@@ -1,0 +1,52 @@
+\documentclass[12pt]{article}   % you have 10pt, 11pt, or 12pt options
+
+\usepackage{import}
+\subimport{../}{setup.tex}
+
+\title{Diskrete Matehmatik}
+\author{Stefan Kreiner}
+\date{2018-12-11}
+
+
+\begin{document}
+
+\maketitle
+
+\begin{figure}[ht]
+\centerline{\hspace{-1cm}
+    \includegraphics[height={6cm}]{resources/31.png}} 
+\end{figure}
+
+a) Die Anzahl aller verschiedenen Telefonnummern ist die Anzahl aller Permutationen von 7 Elementen ohne die Permutationen von nicht unterscheidbaren Objekten.
+$=>$ Die Anzahl aller verschiedenen Telefonnummern ist $7!/(3!*2!)$ = 420
+
+
+b) Mit 2 beginnern alle Telefonnummern der form 2xxxxxx wobei xxxxxx eine permutation von 1,2,2,5,8,8 ist
+$=>$ Es gibt wegen gleicher Begründung wie oben $6!/(2!*2!)$ = 180 verschiedene Telefonnummern die mit 2 beginnen.
+
+Analog für 5 Telefonnummern: $6!/(3!*2!) = 60$
+($=>$ es gibt auch 60 Telefonnummern die mit 1 beginnen)
+
+
+c) es gibt 60 die mit 1 beginnen und 180 die mit 2 beginnen
+$=>$ Die kleinste Telefonnummer die mit 5 beginnt ist an stelle 241.
+
+Position 400:
+Es gibt 60 Telefonnummern mit 1 \& 5 am Anfang und 180 mit 2 am Anfang 
+$=>$ Es gibt 300 Telefonnummern mit 1,2 oder 5 am Anfang
+
+für 81xxxxx gibt es $5!/3! = 20$ verschiedene Möglichkeiten
+für 82xxxxx gibt es $5!/2! = 60$ verschiedene Möglichkeiten
+für 85xxxxx gibt es $5!/3! = 20$ verschiedene Möglichkeiten
+$=>$ an Position 400 steht die größte Telefonnummer die mit 85xxxxx gemacht werden kann
+$=>$ an Position 400 steht 8582221
+
+
+\begin{figure}[ht]
+\centerline{\hspace{-1cm}
+    \includegraphics[height={5cm}]{resources/32.png}} 
+\label{fig:fun}
+\end{figure}
+
+
+\end{document}
