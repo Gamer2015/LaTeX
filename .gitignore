@@ -8,6 +8,11 @@
 !*.tex
 !*.py
 
+# except html and related
+!*.html
+!*.js
+!*.css
+
 # and except everything in resource/resources folders
 !*/resource/*
 !*/resources/*
