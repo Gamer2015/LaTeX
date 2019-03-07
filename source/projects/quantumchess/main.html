@@ -1,0 +1,1248 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+
+	<title>The HTML5 Herald</title>
+	<meta name="description" content="The HTML5 Herald">
+	<meta name="author" content="SitePoint">
+
+	<link rel="stylesheet" href="styles.css">
+	<script type="text/javascript">
+
+		const DEFAULT_COLORS = {
+			SQUARES_WHITE0: '#cfcfcf',
+			SQUARES_BLACK0: '#303030',
+			PIECES_WHITE: '#efefef',
+			PIECES_BLACK: '#101010',
+		};
+
+		const PLAYER = {
+			WHITE: 0,
+			BLACK: 1,
+		};
+		const PIECE_TYPE = {
+			NONE: 0,
+			PAWN: 1,
+			KNIGHT: 2,
+			BISHOP: 3,
+			ROCK: 4,
+			QUEEN: 5,
+			KING: 6
+		};
+
+		const MOVE_TYPE = {
+			NONE: 0,
+			NORMAL: 1,
+			QUANTUM: 2,
+		}
+
+		const ACTION = {
+			MOVE: 0,
+			MEASUREMENT: 1
+		}
+
+		const PIECE = {
+			NONE: 0,
+
+			WHITE_PAWN: 	PLAYER.WHITE | PIECE_TYPE.PAWN << 1,
+			WHITE_KNIGHT: 	PLAYER.WHITE | PIECE_TYPE.KNIGHT << 1,
+			WHITE_BISHOP: 	PLAYER.WHITE | PIECE_TYPE.BISHOP << 1,
+			WHITE_ROCK: 	PLAYER.WHITE | PIECE_TYPE.ROCK << 1,
+			WHITE_QUEEN: 	PLAYER.WHITE | PIECE_TYPE.QUEEN << 1,
+			WHITE_KING: 	PLAYER.WHITE | PIECE_TYPE.KING << 1,
+
+			BLACK_PAWN: 	PLAYER.BLACK | PIECE_TYPE.PAWN << 1,
+			BLACK_KNIGHT: 	PLAYER.BLACK | PIECE_TYPE.KNIGHT << 1,
+			BLACK_BISHOP: 	PLAYER.BLACK | PIECE_TYPE.BISHOP << 1,
+			BLACK_ROCK: 	PLAYER.BLACK | PIECE_TYPE.ROCK << 1,
+			BLACK_QUEEN: 	PLAYER.BLACK | PIECE_TYPE.QUEEN << 1,
+			BLACK_KING: 	PLAYER.BLACK | PIECE_TYPE.KING << 1,
+		}
+
+
+		function newPiece(piece) {
+			if ( typeof newPiece.nextId == 'undefined' ) {
+				newPiece.nextId = 0;
+			}
+
+			return {
+				piece: piece,
+				id: ++newPiece.nextId,
+				hasMoved: false,
+				hasMovedInLastTurn: false,
+				lastPosition: null,
+			}
+		}
+
+		function player(piece) {
+			return piece & 0b1;
+		}
+		function pieceType(piece) {
+			return piece >> 1;
+		}
+
+		class Game {
+			constructor(otherGame) {
+				this.possibleMoves = new Set();
+				let column = [];
+				for(let row = 0; row < rows; ++row) {
+					column.push(0);
+				}
+
+				this.board = [];
+			// initialize
+			for(let col = 0; col < columns; ++col) {
+				this.board.push(Object.assign([], column));
+			}
+
+			if(otherGame != null) {
+				// copy board
+				for(let col = 0; col < columns; ++col) {
+					for(let row = 0; row < rows; ++row) {
+						this.board[col][row] = Object.assign({},otherGame.board[col][row]);
+					}
+				}
+			} else {
+				// initialize
+				for(let col = 0; col < columns; ++col) {
+					for(let row = 0; row < rows; ++row) {
+						this.board[col][row] = { piece: PIECE.NONE };
+					}
+				}
+
+				// set standard pieces
+				for(let col = 0; col < columns; ++col) {
+					this.board[col][1] = { 
+						piece: PIECE.WHITE_PAWN, 
+						hasMoved: false, 
+						/* lastPosition=null, */ // last position as indices
+						/* hasMovedInLastTurn=false */ 
+					};
+					this.board[col][6] = newPiece(PIECE.BLACK_PAWN);
+				}
+				this.board[0][0] = newPiece(PIECE.WHITE_ROCK);
+				this.board[7][0] = newPiece(PIECE.WHITE_ROCK);
+				this.board[1][0] = newPiece(PIECE.WHITE_KNIGHT);
+				this.board[6][0] = newPiece(PIECE.WHITE_KNIGHT);
+				this.board[2][0] = newPiece(PIECE.WHITE_BISHOP);
+				this.board[5][0] = newPiece(PIECE.WHITE_BISHOP);
+				this.board[3][0] = newPiece(PIECE.WHITE_QUEEN);
+				this.board[4][0] = newPiece(PIECE.WHITE_KING);
+
+				this.board[0][7] = newPiece(PIECE.BLACK_ROCK);
+				this.board[7][7] = newPiece(PIECE.BLACK_ROCK);
+				this.board[1][7] = newPiece(PIECE.BLACK_KNIGHT);
+				this.board[6][7] = newPiece(PIECE.BLACK_KNIGHT);
+				this.board[2][7] = newPiece(PIECE.BLACK_BISHOP);
+				this.board[5][7] = newPiece(PIECE.BLACK_BISHOP);
+				this.board[3][7] = newPiece(PIECE.BLACK_QUEEN);
+				this.board[4][7] = newPiece(PIECE.BLACK_KING);
+			}
+		}
+
+		fieldLabel(col, row) {
+			return colLabels[col] + rowLabels[row];
+		}
+		getBoardIndices(fieldLabel) {
+			let col = fieldLabel[0].charCodeAt() - colLabels[0].charCodeAt();
+			let row = fieldLabel[1].charCodeAt() - rowLabels[0].charCodeAt();
+			return {
+				col: col, 
+				row: row
+			};
+		}
+
+		move(clicked, newPosition) { 
+			for(let col = 0; col < columns; ++col) {
+				for(let row = 0; row < rows; ++row) {
+					this.board[col][row].hasMovedInLastTurn = false;
+				}
+			}
+
+			if(this.possibleMoves.has(newPosition.label)) {
+				let col = clicked.col;
+				let row = clicked.row;
+				
+				let newCol = newPosition.col;
+				let newRow = newPosition.row;
+
+				let oldField = this.board[col][row];
+				let piece = oldField.piece;	
+				let newPiece = this.board[newCol][newRow].piece;
+
+				// en passant
+				if(pieceType(piece) == PIECE_TYPE.PAWN && newCol != col && newPiece == PIECE.NONE) {
+					this.board[newCol][row] = { piece: PIECE.NONE };
+				}
+
+				// castle
+				if(pieceType(piece) == PIECE_TYPE.KING && Math.abs(col - newCol) == 2) {
+					if(newCol > col) {
+						this.board[newCol - 1][row] = this.board[columns - 1][row];
+						this.board[columns - 1][row] = { piece: PIECE.NONE };	
+					} else if(newCol < col) {
+						this.board[newCol + 1][row] = this.board[0][row];
+						this.board[0][row] = { piece: PIECE.NONE };							
+					}
+				}
+
+				if(clicked.state == MOVE_TYPE.NORMAL || (clicked.state == MOVE_TYPE.QUANTUM && newPiece == PIECE.NONE)) {
+					oldField.hasMoved = true;
+					oldField.lastPosition = { col:clicked.col, row:clicked.row };
+					oldField.hasMovedInLastTurn = true;
+
+					this.board[newCol][newRow] = oldField;
+					this.board[clicked.col][clicked.row] = { piece: PIECE.NONE };
+				}
+			}
+		}
+
+		getAvailableMoves(click) {
+			// it is guranteed that
+			// 1. If there is a piece then it is a piece from the correct player
+			let col = click.col;
+			let row = click.row;
+			let state = click.state;
+
+			let clickedField = this.board[col][row];
+			let piece = clickedField.piece;	
+			let id = clickedField.id;
+
+			let moves = new Set();
+
+			if(piece == PIECE.NONE || state == 0) {
+				return moves;
+			}
+			let type = pieceType(piece);
+			// it is guranteed that
+			// 1. It is a piece from the correct player
+
+			let fieldCol, fieldRow, field = null;
+
+			if(type == PIECE_TYPE.PAWN) {
+				let direction = player(piece) == PLAYER.WHITE ? 1 : -1;
+
+				fieldCol = col;
+				fieldRow = row + direction;
+				if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+					field = this.board[fieldCol][fieldRow];
+					if(field.piece == PIECE.NONE) {
+						moves.add(this.fieldLabel(fieldCol, fieldRow));
+
+						fieldCol = col;
+						fieldRow = row + 2*direction;
+						if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+							field = this.board[fieldCol][fieldRow];
+							if(row == (direction == 1 ? 1 : 6) && field.piece == PIECE.NONE) {	
+								moves.add(this.fieldLabel(fieldCol, fieldRow));
+							}
+						}
+					}
+				}
+				if(col != 0) {
+					fieldCol = col - 1;
+					fieldRow = row + direction;
+					if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+						field = this.board[fieldCol][fieldRow];
+						if(field.piece != PIECE.NONE && player(field.piece) != player(piece)) {
+							moves.add(this.fieldLabel(fieldCol, fieldRow));
+						}
+					}
+					fieldCol = col - 1;
+					fieldRow = row + direction;
+					if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+						field = this.board[fieldCol][row];
+						if(pieceType(field.piece) == PIECE_TYPE.PAWN && player(field.piece) != player(piece) && field.hasMovedInLastTurn == true && field.lastPosition.col == fieldCol && field.lastPosition.row == row + 2*direction) {
+							moves.add(this.fieldLabel(fieldCol, row + direction));
+						}
+					}
+				}
+				if(col != columns-1) {
+					fieldCol = col + 1;
+					fieldRow = row + direction;
+					if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+						field = this.board[fieldCol][fieldRow];
+						if(field.piece != PIECE.NONE && player(field.piece) != player(piece)) {
+							moves.add(this.fieldLabel(fieldCol, fieldRow));
+						}
+					}
+					fieldCol = col + 1;
+					fieldRow = row + direction;
+					if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+						field = this.board[fieldCol][row];
+						if(pieceType(field.piece) == PIECE_TYPE.PAWN && player(field.piece) != player(piece) && field.hasMovedInLastTurn == true && field.lastPosition.col == fieldCol && field.lastPosition.row == row + 2*direction) {
+							moves.add(this.fieldLabel(fieldCol, fieldRow));
+						}
+					}
+				}
+			} else if(type == PIECE_TYPE.KNIGHT || type == PIECE_TYPE.KING) {
+				let offsets = [];
+				if(type == PIECE_TYPE.KNIGHT) {
+					offsets = offsets.concat([{
+						col: +2, row: +1
+					}, {
+						col: +2, row: -1
+					}, {
+						col: -2, row: +1
+					}, {
+						col: -2, row: -1
+					}, {
+						col: +1, row: +2
+					}, {
+						col: -1, row: +2
+					}, {
+						col: +1, row: -2
+					}, {
+						col: -1, row: -2
+					}]);
+				} else if(type == PIECE_TYPE.KING) {
+					offsets = offsets.concat([{
+						col: +1, row: 0
+					}, {
+						col: -1, row: 0
+					}, {
+						col: -1, row: +1
+					}, {
+						col: 0, row: +1
+					}, {
+						col: +1, row: +1
+					}, {
+						col: -1, row: -1
+					}, {
+						col: 0, row: -1
+					}, {
+						col: +1, row: -1
+					}]);
+				}
+
+				for(let offset of offsets) {
+					fieldCol = col+offset.col;
+					fieldRow = row+offset.row;
+					if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+						field = this.board[fieldCol][fieldRow];
+						if(field.piece == PIECE.NONE || player(field.piece) != player(piece)) {
+							moves.add(this.fieldLabel(fieldCol, fieldRow));
+						}
+					}
+				}
+				if(type == PIECE_TYPE.KING && clickedField.hasMoved == false) { // => col = e 
+					let baseRow = player(piece) == PLAYER.WHITE ? 0 : 7;
+					if(row == baseRow) {
+						if(this.board[col + 1][row].piece == PIECE.NONE && this.board[col + 2][row].piece == PIECE.NONE) {
+							moves.add(this.fieldLabel(col + 2, row));
+						}
+						if(this.board[col - 1][row].piece == PIECE.NONE && this.board[col - 2][row].piece == PIECE.NONE && this.board[col - 3][row].piece == PIECE.NONE) {
+							moves.add(this.fieldLabel(col - 2, row));
+						}
+					}
+				}
+			}  else if(type == PIECE_TYPE.BISHOP || type == PIECE_TYPE.ROCK || type == PIECE_TYPE.QUEEN) {
+				let directions = [];
+				if(type == PIECE_TYPE.BISHOP || type == PIECE_TYPE.QUEEN) {
+					directions = directions.concat([{
+						col: 1, row: 1	
+					}, {
+						col: 1, row: -1	
+					}, {
+						col: -1, row: 1	
+					}, {
+						col: -1, row: -1	
+					}]);
+				}
+				if(type == PIECE_TYPE.ROCK || type == PIECE_TYPE.QUEEN) {
+					directions = directions.concat([{
+						col: 1, row: 0
+					}, {
+						col: -1, row: 0	
+					}, {
+						col: 0, row: 1	
+					}, {
+						col: 0, row: -1	
+					}]);
+				}
+
+				for(let direction of directions) {
+					let fieldRow = row;
+					let fieldCol = col;
+					let cont = true;
+					do {
+						fieldRow += direction.row;
+						fieldCol += direction.col;
+						if(fieldRow >= 0 && fieldRow < rows && fieldCol >= 0 && fieldCol < columns) {
+							field = this.board[fieldCol][fieldRow];
+							if(field.piece == PIECE.NONE || player(field.piece) != player(piece)) {
+								moves.add(this.fieldLabel(fieldCol, fieldRow));
+							}
+							if(field.piece != PIECE.NONE) {
+								cont = false;
+							}
+						} else {
+							cont = false;
+						}
+					} while(cont);
+				}
+			} 
+
+			if(state == MOVE_TYPE.QUANTUM) {
+				let newMoves = new Set();
+				for(let move of moves) {
+					let dummyGame = new Game(this);
+					dummyGame.possibleMoves = new Set(moves);
+					let indices = this.getBoardIndices(move);
+					let newClick = { label: move, col: indices.col, row: indices.row, state: MOVE_TYPE.NORMAL };
+					dummyGame.move(
+						{ label: '', col: click.col, row: click.row, state: MOVE_TYPE.NORMAL }, 
+						newClick,
+						);
+					for(let tmpMove of dummyGame.getAvailableMoves(newClick)) {
+						newMoves.add(tmpMove);
+					}
+				}
+				for(let move of newMoves) {
+					moves.add(move);
+				}
+				let tmpMoves = new Set();
+				for(let move of moves) {
+					let indices = this.getBoardIndices(move);
+					if(this.board[indices.col][indices.row].piece == PIECE.NONE || this.board[indices.col][indices.row].id == id) {
+						tmpMoves.add(move);
+					}
+				}
+				moves = tmpMoves;
+			}
+
+			this.possibleMoves = moves;
+			return moves;
+		}
+	}
+
+	class Quantumgame {
+		constructor() {
+			this.resetClick();
+			this.possibleMoves = new Set();
+			this.actions = [];
+
+			this.running 	= true;
+			this.view 		= PLAYER.WHITE;
+			this.turn		= PLAYER.WHITE; // active player
+
+			this.games = [new Game()];
+
+			this.board = [];
+			for(let col = 0; col < columns; ++col) {
+				this.board.push([]);
+				for(let row = 0; row < rows; ++row) {
+					this.board[col].push({
+						piece: this.games[0].board[col][row].piece,
+						probability: 1
+					});
+				}
+			}
+		}
+
+		click(x, y) { // (x,y) beeing the coordinate from top left corner
+			let row = Math.floor((y - borderSize) / (borderSize + squareSize));
+			let col = Math.floor((x - borderSize) / (borderSize + squareSize));
+
+			let newClick = {
+				label: '',
+				col: null,
+				row: null,
+				state: 1
+			}; 
+
+			if(!(col >= columns || col < 0 || row < 0 || row >= rows)) { // square on the board
+				newClick.label = this._colLabels[col] + this._rowLabels[row];	
+
+				newClick.col = newClick.label[0].charCodeAt() - colLabels[0].charCodeAt();
+				newClick.row = newClick.label[1].charCodeAt() - rowLabels[0].charCodeAt();
+
+				console.log(newClick.label);
+			}
+
+			let field = this.board[newClick.col][newClick.row];
+			let piece = field.piece;
+			console.log(field);
+			let probability = field.probability;
+			if(this.clicked.label.length == 2) { // a field with a piece of the active player was selected 
+				if(this.clicked.label == newClick.label) { // same field selected again
+					let m = pieceType(piece) == PIECE_TYPE.PAWN ? 2 : 3;
+					this.clicked.state = (this.clicked.state + 1) % m;
+					if(this.clicked.state == 0) {
+						this.resetClick();
+					}
+				} else if(piece != PIECE.NONE && player(piece) == this.turn && probability == 1) { // other players piece was selected
+					this.clicked = newClick;
+				} else { // empty or enemy field selected
+					if(this.possibleMoves.has(newClick.label)) {
+						this.move(this.clicked, newClick);
+						this.resetClick();
+					} else {
+						this.resetClick();
+					}
+				}
+			} else { // no field was selected previously
+				if(piece != PIECE.NONE) {
+					if(player(piece) == this.turn) {
+						this.clicked = newClick;
+					}
+				}
+			}
+
+			this.getAvailableMoves(this.clicked);
+
+			this.render();
+		}
+
+		getAvailableMoves(clicked) {
+			if(clicked == null) {
+				clicked = this.clicked;
+			}
+			let possibleIndicesToMoveTo = new Set();
+			if(clicked.state == 0) {
+				this.possibleMoves = new Set();
+				for(let game of this.games) {
+					game.possibleMoves = new Set();
+				}
+			} else {
+				for(let game of this.games) {
+					for(let fieldLabel of game.getAvailableMoves(clicked)) {
+						possibleIndicesToMoveTo.add(fieldLabel);
+					}
+				}
+				this.possibleMoves = possibleIndicesToMoveTo;
+			}
+		}
+
+		collapse(newPosition) {
+			if(this.board[newPosition.col][newPosition.row].probability == 1) {
+				return;
+			}
+			Math.floor(Math.random() * this.games.length);
+			let chosenGame = Math.floor(Math.random() * this.games.length);
+			let winningPiece = this.games[chosenGame].board[newPosition.col][newPosition.row].piece;
+			this.games = this.games.filter(function(game) {
+				return game.board[newPosition.col][newPosition.row].piece == winningPiece;
+			});
+		}
+
+		measure(newPosition, winningPiece=null) {
+			if(winningPiece != null) {
+				this.games = this.games.filter(function(game) {
+					let hasNoPiece = game.board[newPosition.col][newPosition.row].piece == PIECE.NONE;
+
+					let hasWinningPiece = game.board[newPosition.col][newPosition.row].piece == winningPiece;
+					return hasNoPiece || hasWinningPiece;
+				});
+			} else {
+				let piecesOnNewField = new Set();
+				for(let game of this.games) {
+					piecesOnNewField.add(game.board[newPosition.col][newPosition.row].piece);
+				}
+				piecesOnNewField.delete(PIECE.NONE);
+				if(piecesOnNewField.size >= 2) {
+					let measuredGames = this.games.filter(function(game) {
+						return game.board[newPosition.col][newPosition.row].piece != PIECE.NONE;
+					});
+					let chosenGame = Math.floor(Math.random() * measuredGames.length);
+					let winningPiece = measuredGames[chosenGame].board[newPosition.col][newPosition.row].piece;
+
+					this.games = this.games.filter(function(game) {
+						let hasNoPiece = game.board[newPosition.col][newPosition.row].piece == PIECE.NONE;
+
+						let hasWinningPiece = game.board[newPosition.col][newPosition.row].piece == winningPiece;
+						return hasNoPiece || hasWinningPiece;
+					});
+
+					this.actions.push({type: ACTION.MEASUREMENT, position: Object.assign({},newPosition), piece: winningPiece });
+				}
+			}
+		}
+
+		updateBoard(doMeasures=true) {
+			for(let col = 0; col < columns; ++col) {
+				for(let row = 0; row < rows; ++row) {
+					if(doMeasures==true) {
+						let lengthBefore = this.games.length;
+						this.measure({col:col, row:row});
+						if(lengthBefore != this.games.length) {
+							this.updateBoard();
+							return;
+						}
+					}
+					let total = 0;
+					let piece = null;
+					for(let game of this.games) {
+						let gamePiece = game.board[col][row].piece;
+						if(gamePiece != PIECE.NONE) {
+							++total;
+							piece = game.board[col][row].piece;
+						}
+					}
+					if(total == 0) {
+						this.board[col][row].piece = PIECE.NONE;
+						this.board[col][row].probability = 1;
+					} else {
+						this.board[col][row].piece = piece;
+						this.board[col][row].probability = total / this.games.length;
+					}
+				}
+			}
+		}
+
+
+		move(clicked, newPosition, action=null) {
+			let moveType = clicked.state;
+			let col = clicked.col;
+			let row = clicked.row;
+
+			let newCol = newPosition.col;
+			let newRow = newPosition.row;
+
+			let oldField = this.board[col][row];
+			let piece = oldField.piece;	
+
+			let move = {type: ACTION.MOVE, moveType: clicked.state, from: Object.assign({}, clicked), to: Object.assign({}, newPosition) };
+
+			if(moveType == MOVE_TYPE.QUANTUM) {
+				let newGames = [];
+				for(let game of this.games) {
+					if(game.possibleMoves.has(newPosition.label)) {
+						let newGame = new Game(game);
+						newGames.push(newGame);
+						game.move(clicked, newPosition);
+					}
+				}
+				this.games = this.games.concat(newGames);
+			} else {
+				// en passant
+				if(pieceType(piece) == PIECE_TYPE.PAWN && (newRow == 0 || newRow == 7)) {
+					if(action != null) {
+						oldField.piece = action.promotion;
+					} else {
+						var newPieceString = prompt("Promote to: \nQ - Queen\nR - Rock\nB - Bishop\nK - Knight\n\nNote: If nothing is entered or this dialogue is canceled it defaults to Queen", "Q");
+
+						oldField.piece = player(piece);
+						switch(newPieceString) {
+							case 'R': oldField.piece |= PIECE_TYPE.ROCK << 1;
+							break;
+							case 'B': oldField.piece |= PIECE_TYPE.BISHOP << 1;
+							break;
+							case 'K': oldField.piece |= PIECE_TYPE.KNIGHT << 1;
+							break; 
+							default: oldField.piece |= PIECE_TYPE.QUEEN << 1;
+							break;
+						}
+					}
+
+					move.promotion = oldField.piece;
+
+					for(let game of this.games) {
+						let colRef = game.board[col];
+						if(pieceType(colRef[row].piece) == PIECE_TYPE.PAWN) {
+							colRef[row].piece = oldField.piece;
+						}
+					}
+				}
+
+				for(let game of this.games) {
+					game.move(clicked, newPosition);
+				}
+			}
+			if(action == null) {
+				this.actions.push(move);
+			}
+/*
+			this.measure(newPosition);
+
+			// castle
+			if(pieceType(piece) == PIECE_TYPE.KING && Math.abs(newCol - col) == 2) {
+				this.measure({col: (newCol - col) / 2 + col, row: row});
+			}
+			*/
+
+			if(action == null) {
+				this.updateBoard();
+			}
+
+			if(this.turn == PLAYER.WHITE) {
+				this.turn = PLAYER.BLACK;
+			} else {
+				this.turn = PLAYER.WHITE;
+			}
+
+			console.log("games:", this.games.length);
+
+			if(action == null) {
+				this.render();
+			}
+		}
+		import(actions) {
+			console.log("actions", actions);
+
+			try {
+				for(let action of actions) {
+					if(action.type == ACTION.MOVE) {
+						this.clicked = action.from;
+						this.getAvailableMoves(this.clicked);
+						this.move(action.from, action.to, action);
+					} else if(action.type == ACTION.MEASUREMENT) {
+						this.measure(action.position, action.piece);
+						this.updateBoard(false);
+					}
+				}
+				this.resetClick();
+				this.getAvailableMoves(this.clicked);
+				this.actions = actions;
+			} catch(e) {
+				console.log("error", e);
+			}
+		}
+
+		export() {
+			let s = JSON.stringify(this.actions);
+			alert(s);
+			console.log(s);
+		}
+
+		resetClick() {
+			this.clicked = {
+				label: '',
+				col: null,
+				row: null,
+				state: 0,
+			};
+		}
+
+		render() {
+			let canvas 			= document.getElementById(canvasId);
+
+			let offsetTop = 0;
+			let offsetRight = 0;
+			let offsetBottom = legendSpaceBottom;
+			let offsetLeft = legendSpaceLeft;
+
+			let ctx 			= canvas.getContext("2d");
+			ctx.canvas.width  	= offsetLeft + offsetRight + columns*squareSize + (columns+1) * borderSize;
+			ctx.canvas.height 	= offsetTop + offsetBottom + rows*squareSize + (rows+1) * borderSize;
+
+
+			let boardTop 	= this.boardTop;
+			let boardRight 	= this.boardRight;
+			let boardBot 	= this.boardBot;
+			let boardLeft 	= this.boardLeft;
+
+			let rowYs 	= this.rowYs;
+			let colXs 	= this.colXs;
+
+			// draw legend
+			let fontSize = 14;
+			ctx.font = fontSize + "px Arial";
+			ctx.fillStyle = '#000000';
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle"; 
+			for(let col = 0; col < columns; ++col) {
+				let posX = colXs[col];
+				let posY = rowYs[rows];
+				ctx.fillText(this._colLabels[col], posX + squareSize / 2, posY + offsetBottom / 2);
+			}
+			for(let row = 0; row < rows; ++row) {
+				let posX = 5;
+				let posY = rowYs[row];
+				ctx.fillText(this._rowLabels[row], posX, posY + squareSize / 2);
+			}
+
+			// draw border lines
+			ctx.fillStyle = borderColor;
+			for(let col = 0; col <= columns; ++col) {
+				let posX = colXs[col];
+				let posY = rowYs[0];
+				let height = rowYs[rows] - posY + borderSize;
+
+				ctx.fillRect(posX, posY, borderSize, height);
+			}
+			for(let row = 0; row <= rows; ++row) {
+				let posX = colXs[0];
+				let posY = rowYs[row];
+				let width = colXs[columns] - posX + borderSize;
+
+				ctx.fillRect(posX, posY, width, borderSize);
+			}
+
+			// draw squares
+			for(let row = 0; row < rows; ++row) {
+				let posY = rowYs[row] + borderSize; 
+				for(let col = 0; col < columns; ++col) {
+					let posX = colXs[col] + borderSize; 
+					let fieldLabel = this._colLabels[col] + this._rowLabels[row]; 
+
+					let colorIndex = (1/2 + Math.pow(-1, 1+col+row)*1/2)
+					ctx.fillStyle = squareColors[colorIndex][0];
+
+					if(this.possibleMoves.has(fieldLabel)) {
+						ctx.fillStyle = squareColors[colorIndex][3];
+					} 
+
+					if(this.clicked.label == fieldLabel && this.clicked.state != 0) {
+						ctx.fillStyle = squareColors[colorIndex][this.clicked.state];
+					} 
+					ctx.fillRect(posX, posY, squareSize, squareSize);
+				}
+			}
+
+			// draw pieces
+			fontSize = 32;
+			ctx.font = fontSize + "px Arial";
+			ctx.textAlign = "center";
+
+
+			let drawSize = squareSize;
+
+			for(let row = 0; row < rows; ++row) {
+				for(let col = 0; col < columns; ++col) {
+
+					let field = this._colLabels[col] + this._rowLabels[row];
+					let indices = this.getBoardIndices(field);
+					let piece = this.board[indices.col][indices.row].piece;
+					let probability = this.board[indices.col][indices.row].probability;
+
+					if(piece != PIECE.NONE) {
+						let type = pieceType(piece);
+						let data = imPieceData[type - 1];
+
+						let imPieceX = imPieceSize * (type-1) + data.offset.x;
+						let imPieceY = imY[player(piece)][0] + data.offset.y;
+
+						let imPieceDeadY = imY[player(piece)][1] + data.offset.y;
+
+						let height = squareSize * data.height / imPieceSize * 5 / 4;
+						let width = squareSize * data.width / imPieceSize * 5 / 4;
+
+						let posX = colXs[col] + borderSize + (squareSize / 2) - width / 2;
+						let posY = rowYs[row] + borderSize + (squareSize / 2) - height / 2;
+
+						let aliveHeight = height * probability;
+						let deadHeight = height-aliveHeight;
+
+						let pieceHeight = data.height;
+						let aliveClipHeight = pieceHeight * probability;
+						let deadClipHeight = pieceHeight-aliveClipHeight;
+
+
+
+						ctx.drawImage(pieceImage,imPieceX,imPieceY,data.width,pieceHeight
+							,posX,posY,width,height);
+
+						ctx.drawImage(pieceImage,imPieceX,imPieceDeadY,data.width,deadClipHeight,posX,posY,width,deadHeight);
+
+
+/*
+						ctx.fillStyle = '#ffffff';
+						ctx.fillRect(posX + squareSize / 5, posY + squareSize / 5, squareSize * 3 / 5, squareSize * 3 / 5);
+
+						ctx.fillStyle = '#00ffff';
+						ctx.fillRect(posX + squareSize / 5, posY + squareSize / 5 + heightWhite, squareSize * 3 / 5, heightCyan);
+
+						ctx.fillStyle = '#000000'; 
+						ctx.fillText(piece, posX + squareSize / 2, posY + squareSize / 2);
+						*/
+					}
+				}
+			}
+		}
+
+		running() {
+			return this.running;
+		}
+
+		rotate() {
+			if(this.view == PLAYER.WHITE) {
+				this.view = PLAYER.BLACK;
+			} else {
+				this.view = PLAYER.WHITE;
+			}
+			this.recalculateLabels();
+		}
+		recalculateLabels() {
+			this._rowLabels = rowLabels;
+			this._colLabels = colLabels;
+			if(this.view == PLAYER.BLACK) {
+				this._colLabels = this._colLabels.split('').reverse().join('');
+			} else {
+				this._rowLabels = this._rowLabels.split('').reverse().join('');
+			}
+		}
+		recalculatePositions() {
+			let offsetTop = 0;
+			let offsetRight = 0;
+			let offsetBottom = legendSpaceBottom;
+			let offsetLeft = legendSpaceLeft;
+
+			let boardTop = offsetTop;
+			let boardRight = offsetLeft + borderSize + columns*(borderSize + squareSize);
+			let boardBot = offsetTop + borderSize + rows*(borderSize + squareSize);
+			let boardLeft = offsetLeft;
+
+			this.boardTop = boardTop;
+			this.boardRight = boardRight;
+			this.boardBot = boardBot;
+			this.boardLeft = boardLeft;
+
+			let rowYs = [];
+			let colXs = [];
+
+			for(let col = 0; col <= columns; ++col) {
+				colXs.push(boardLeft + col * (borderSize + squareSize));
+			}
+			for(let row = 0; row <= rows; ++row) {
+				rowYs.push(boardTop + row * (borderSize + squareSize));
+			}
+
+			this.rowYs = rowYs;
+			this.colXs = colXs;
+		}
+
+		getBoardIndices(pos1) {
+			let col = pos1[0].charCodeAt() - colLabels[0].charCodeAt();
+			let row = pos1[1].charCodeAt() - rowLabels[0].charCodeAt();
+			return {
+				col: col, 
+				row: row
+			};
+		}
+		fieldLabel(indices) {
+			return colLabels[indices.col] + rowLabels[indices.row];
+		}
+	}
+
+	const rows 		= 8;
+	const columns	= 8;
+
+	let game 		= null; // initialized at end of file
+
+
+	let loggingKeys = {
+		game: false,
+
+		newGame: false,
+		openGame: false,
+		saveGame: false,
+
+		setCanvasId: false,
+		setSquareSize: false,
+		setColorWhite: false,
+		setColorBlack: false,
+
+		handleKeyEvent: false,
+		handleGameClickEvent: false,
+	};
+
+	function log(key, ...messages) {
+		if(!key in loggingKeys) {
+			return;
+		}
+		if(loggingKeys[key] == true) {
+			console.log(key.trim().toUpperCase(), '|', messages);
+		}
+	}
+
+	function handleKeyEvent(event, input, ...args) {
+		let key = event.keyCode;
+		log('handleKeyEvent', key);
+		log('handleKeyEvent', 'input', input);
+		log('handleKeyEvent', 'event', event);
+		if(key == 13) {
+			if(input.oninput != null) {
+				input.oninput(event.target.value, args);
+			}
+			if(input.onblur != null) {
+				input.onblur(event.target.value, args);
+			}
+		}
+	}
+
+	function handleGameClickEvent(event, canvas) {
+		log('handleGameClickEvent', "handleGameClickEvent");	
+		log('handleGameClickEvent', "event:", event);	
+		log('handleGameClickEvent', "x:", event.layerX);	
+		log('handleGameClickEvent', "y:", event.layerY);	
+
+		game.click(event.layerX - legendSpaceLeft, event.layerY);
+	}
+
+	/*
+	function setCanvasId(newCanvasId) {
+		log('setCanvasId', "setCanvasId");	
+		log('setCanvasId', "New Canvas Id:", canvasId);	
+		canvasId = newCanvasId;
+	}
+	function setRowCount(newRowCount) {
+		log('setRowCount', "setRowCount");	
+		log('setRowCount', "New Row Count:", newRowCount);
+		rows = newRowCount;
+	}
+	function setColumnCount(newColumnCount) {
+		log('setColumnCount', "setColumnCount");	
+		log('setColumnCount', "New Column Count:", newColumnCount);
+		columns = newColumnCount;
+	}
+	*/
+
+	function setSquareSize(newSize) {
+		log('setSquareSize', "setSquareSize");	
+		log('setSquareSize', "New Square Size:", newSize);
+		squareSize 	= (newSize != null ? parseInt(newSize) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+	function setBorderSize(newSize) {
+		log('setSquareSize', "setSquareSize");	
+		log('setSquareSize', "New Square Size:", newSize);
+		borderSize 	= (newSize != null ? parseInt(newSize) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+
+	function setBorderColor(newColor) {
+		log('setBorderColor', "setColorWhite");	
+		log('setBorderColor', "New Color White Squares:", newColor);
+		borderColor 	= newColor;
+		game.render();
+	}
+
+	function setSquareColors(newColor, color, state) {
+		squareColors[color][state] 	= newColor;
+		game.render();
+	}
+
+	function setRowLabels(newLabels) {
+		log('setRowLabels', "setRowLabels");	
+		log('setRowLabels', "New Row Labels:", newLabels);
+		rowLabels 	= newLabels;
+		game.render();
+	}
+	function setColumnLabels(newLabels) {
+		log('setColumnLabels', "setColumnLabels");	
+		log('setColumnLabels', "New Column Labels:", newLabels);
+		colLabels 	= newLabels;
+		game.render();
+	}
+
+	function setLegendSpaceLeft(newSpace) {
+		log('setLegendSpaceLeft', "setLegendSpaceLeft");	
+		log('setLegendSpaceLeft', "New Column Labels:", newSpace);
+		legendSpaceLeft 	= (newSpace != '' ? parseInt(newSpace) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+	function setLegendSpaceBottom(newSpace) {
+		log('setLegendSpaceBottom', "setLegendSpaceBottom");	
+		log('setLegendSpaceBottom', "New Column Labels:", newSpace);
+		legendSpaceBottom 	= (newSpace != '' ? parseInt(newSpace) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+
+	function recalculatePieceRowData() {
+		for(let i = 0; i < 2; ++i) {
+			for(let j = 0; j < 2; ++j) {
+				imY[i][j] = pieceColors[i][j] * imPieceSize;	
+			}
+		}
+	}		
+	function setPieceColors(newRow, player, state) {
+		pieceColors[player][state] = (newRow != '' ? parseInt(newRow) : 0);
+
+		recalculatePieceRowData();
+
+		game.render();
+	}
+
+	function collapse() {
+		for(let col = 0; col < columns; ++col) {
+			for(let row = 0; row < rows; ++row) {
+				game.collapse({col:col, row:row});
+			}
+		}
+		game.updateBoard();
+		game.render();
+	}
+
+
+	function rotateBoard() {
+		log('rotateBoard', "rotateBoard");	
+		game.rotate();
+		game.render();
+	}
+
+	function newGame() {
+		log('newGame', "newGame");	
+		game = new Quantumgame();
+		game.recalculateLabels();
+		game.recalculatePositions();
+		game.render();
+	}
+
+	function saveGame() {
+		log('saveGame', "saveGame");	
+		game.export();
+	}
+
+	function openGame() {
+		log('openGame', "openGame");	
+
+		var data = JSON.parse(prompt("Data:", ""));
+		newGame();
+		game.import(data);
+		game.updateBoard(false);
+		game.render();
+	}
+</script>
+
+</head>
+
+<body>
+	<canvas id="game" onclick="handleGameClickEvent(event, this)" >Your browser does not support the HTML5 canvas tag.</canvas>
+
+	<br/>
+
+	<button onclick="rotateBoard()">Rotate Board</button>
+	<button onclick="newGame()">New Game</button>
+	<button onclick="collapse()">Collapse</button>
+
+	<button onclick="saveGame()">Save</button>
+	<button onclick="openGame()">Open</button>
+	<br/>
+
+<!--
+	Canvas Id: 
+	<input type="text" value="game" onblur="setCanvasId(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+	Rows: 
+	<input type="number" value="8" onblur="setRowCount(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+	columns: 
+	<input type="number" value="8" onblur="setColumnCount(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+<div class="">
+-->
+<div class="hidden">
+Row Labeling: </br>
+<input id="rowLabels" type="text" value="12345678" onblur="setRowLabels(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/>
+Column Labeling: </br>
+<input id="colLabels" type="text" value="abcdefgh" onblur="setColumnLabels(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/></br>
+</div>
+
+Square Size: </br>
+<input id="squareSize" type="number" value="80" onblur="setSquareSize(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/>
+Border Size: </br>
+<input id="borderSize" type="number" value="1" onblur="setBorderSize(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/></br>
+
+Border Color: </br>
+<input id="borderColor" type="color" onload="this.value=borderColor;" oninput="setBorderColor(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/>
+Square Colors White: </br>
+<input id="squareColor00" type="color" value="#cfcfcf" oninput="setSquareColors(this.value, 0, 0)" onkeypress="handleKeyEvent(event, this, 0, 0)" />
+<input id="squareColor01" type="color" value="#00ff00" oninput="setSquareColors(this.value, 0, 1)" onkeypress="handleKeyEvent(event, this, 0, 1)" />
+<input id="squareColor02" type="color" value="#00FF00" oninput="setSquareColors(this.value, 0, 2)" onkeypress="handleKeyEvent(event, this, 0, 2)" />
+<input id="squareColor03" type="color" value="#F0E68C" oninput="setSquareColors(this.value, 0, 3)" onkeypress="handleKeyEvent(event, this, 0, 3)" />
+<br/>
+Square Colors Black: </br>
+<input id="squareColor10" type="color" value="#303030" oninput="setSquareColors(this.value, 1, 0)" onkeypress="handleKeyEvent(event, this, 1, 0)" />
+<input id="squareColor11" type="color" value="#00ff00" oninput="setSquareColors(this.value, 1, 1)" onkeypress="handleKeyEvent(event, this, 1, 1)" />
+<input id="squareColor12" type="color" value="#00FF00" oninput="setSquareColors(this.value, 1, 2)" onkeypress="handleKeyEvent(event, this, 1, 2)" />
+<input id="squareColor13" type="color" value="#BDB76B" oninput="setSquareColors(this.value, 1, 3)" onkeypress="handleKeyEvent(event, this, 1, 3)" />
+<br/>
+
+Legend Space Left: </br>
+<input id="legendSpaceLeft" type="number" value="20" onblur="setLegendSpaceLeft(this.value)" onkeypress="handleKeyEvent(event, this)" />
+<br/>
+Legend Space Bottom: </br>
+<input id="legendSpaceBottom" type="number" value="24" onblur="setLegendSpaceBottom(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/><br/>
+
+Pieces White (alive, dead): </br>
+<input id="piecesWhiteAlive" type="number" value="10" onblur="setPieceColors(this.value, 0, 0)" onkeypress="handleKeyEvent(event, this, 0, 0)" />
+<input id="piecesWhiteDead" type="number" value="1" onblur="setPieceColors(this.value, 0, 1)" onkeypress="handleKeyEvent(event, this, 0, 1)" /><br/>
+Pieces Black (alive, dead): </br>
+<input id="piecesBlackAlive" type="number" value="5" onblur="setPieceColors(this.value, 1, 0)" onkeypress="handleKeyEvent(event, this, 1, 0)" />
+<input id="piecesBlackDead" type="number" value="1" onblur="setPieceColors(this.value, 1, 1)" onkeypress="handleKeyEvent(event, this, 1, 1)" />
+<br/></br>
+</div>
+
+<script type="text/javascript">
+
+	let colLabels 	= document.getElementById('colLabels').value;
+	let rowLabels 	= document.getElementById('rowLabels').value;
+	
+	let canvasId 	= "game";
+	
+	let squareSize 	= parseInt(document.getElementById('squareSize').value);
+	let borderSize 	= parseInt(document.getElementById('borderSize').value);
+
+	let borderColor 	= document.getElementById('borderColor').value;
+	let squareColors 	= [
+	[
+	document.getElementById('squareColor00').value,
+	document.getElementById('squareColor01').value,
+	document.getElementById('squareColor02').value,
+	document.getElementById('squareColor03').value,
+	], [
+	document.getElementById('squareColor10').value,
+	document.getElementById('squareColor11').value,
+	document.getElementById('squareColor12').value,
+	document.getElementById('squareColor13').value,
+	] 
+	];
+
+	let legendSpaceLeft 	= parseInt(document.getElementById('legendSpaceLeft').value);
+	let legendSpaceBottom 	= parseInt(document.getElementById('legendSpaceBottom').value);
+
+	let pieceColors = [
+	[
+	document.getElementById('piecesWhiteAlive').value,
+	document.getElementById('piecesWhiteDead').value,
+	],
+	[
+	document.getElementById('piecesBlackAlive').value,
+	document.getElementById('piecesBlackDead').value,
+	]
+	];
+
+	let imPieceData = [{
+		offset: {y:25, x:35}, height:76, width: 56,
+	}, {
+		offset: {y:25, x:25}, height:77, width: 78,
+	}, {
+		offset: {y:18, x:22}, height:90, width: 84,
+	}, {
+		offset: {y:25, x:31}, height:76, width: 66,
+	}, {
+		offset: {y:22, x:19}, height:83, width: 89,
+	}, {
+		offset: {y:21, x:24}, height:85, width: 79,
+	}];
+	let imY = [[],[]];
+	imPieceSize = 128;
+	recalculatePieceRowData();
+
+
+	var pieceImage = document.createElement('img');
+	pieceImage.src= 'http://oi67.tinypic.com/nq8bk1.jpg';
+	pieceImage.onload = function() {
+		if(game != null) {
+			game.render();
+		} else {
+			newGame();
+		}
+	}
+
+	newGame();
+</script>
+</body>
+</html>
