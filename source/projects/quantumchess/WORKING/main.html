@@ -37,16 +37,6 @@
 		QUEEN: 5,
 		KING: 6
 	};
-	function PIECE_VALUE(pieceType) {
-		return 0 +  
-		pieceType == PIECE_TYPE.KING ? 9999999:
-		pieceType == PIECE_TYPE.QUEEN ? 9:
-		pieceType == PIECE_TYPE.ROCK ? 5:
-		pieceType == PIECE_TYPE.BISHOP ? 3:
-		pieceType == PIECE_TYPE.KNIGHT ? 3:
-		pieceType == PIECE_TYPE.PAWN ? 1:
-		0;
-	}
 
 	const MOVE_TYPE = {
 		NONE: 0,
@@ -427,9 +417,7 @@
 						newClick,
 						);
 					for(let tmpMove of dummyGame.getAvailableMoves(newClick)) {
-						if(this.getLabel(click) != tmpMove) {
-							newMoves.add(tmpMove);
-						}
+						newMoves.add(tmpMove);
 					}
 				}
 				for(let move of newMoves) {
@@ -439,7 +427,7 @@
 				tmpMoves = new Set();
 				for(let move of moves) {
 					let indices = this.getBoardIndices(move);
-					if((this.board[indices.col][indices.row].piece == PIECE.NONE || this.board[indices.col][indices.row].id == id)) {
+					if(this.board[indices.col][indices.row].piece == PIECE.NONE || this.board[indices.col][indices.row].id == id) {
 						tmpMoves.add(move);
 					}
 				}
@@ -448,10 +436,6 @@
 
 			this.possibleMoves = moves;
 			return moves;
-		}
-
-		getLabel(indices) {
-			return colLabels[indices.col] + rowLabels[indices.row];	
 		}
 	}
 
@@ -497,10 +481,7 @@
 				newClick.col = newClick.label[0].charCodeAt() - colLabels[0].charCodeAt();
 				newClick.row = newClick.label[1].charCodeAt() - rowLabels[0].charCodeAt();
 			}
-			this._click(newClick);
-		}
 
-		_click(newClick) {
 			let field = this.board[newClick.col][newClick.row];
 			let piece = field.piece;
 			let probability = field.probability;
@@ -517,11 +498,6 @@
 					if(this.possibleMoves.has(newClick.label)) {
 						this.move(this.clicked, newClick);
 						this.resetClick();
-
-						if(aiActive[this.turn] == true) {
-							this.render();
-							this.makeMove(aiDepth);
-						}
 					} else {
 						this.resetClick();
 					}
@@ -543,7 +519,7 @@
 			if(clicked == null) {
 				clicked = this.clicked;
 			}
-			let possibleFieldsToMoveTo = new Set();
+			let possibleIndicesToMoveTo = new Set();
 			if(clicked.state == 0) {
 				this.possibleMoves = new Set();
 				for(let game of this.games) {
@@ -552,10 +528,10 @@
 			} else {
 				for(let game of this.games) {
 					for(let fieldLabel of game.getAvailableMoves(clicked)) {
-						possibleFieldsToMoveTo.add(fieldLabel);
+						possibleIndicesToMoveTo.add(fieldLabel);
 					}
 				}
-				this.possibleMoves = possibleFieldsToMoveTo;
+				this.possibleMoves = possibleIndicesToMoveTo;
 			}
 		}
 
@@ -634,7 +610,7 @@
 		}
 
 
-		move(clicked, newPosition, data={action:null, render:true, update:true}) {
+		move(clicked, newPosition, action=null) {
 			let moveType = clicked.state;
 			let col = clicked.col;
 			let row = clicked.row;
@@ -652,17 +628,19 @@
 				for(let game of this.games) {
 					let newGame = new Game(game);
 					newGames.push(newGame);
-
-					game.move(clicked, newPosition);
+					if(game.possibleMoves.has(newPosition.label)) {
+						game.move(clicked, newPosition);
+					}
 				}
 				this.games = this.games.concat(newGames);
 			} else {
 				// promotion
 				if(pieceType(piece) == PIECE_TYPE.PAWN && (newRow == 0 || newRow == 7)) {
-					if(data.action != null) {
-						oldField.piece = data.action.promotion;
+					if(action != null) {
+						oldField.piece = action.promotion;
 					} else {
-						let newPieceString = aiActive[this.turn] ? 'Q' : prompt("Promote to: \nQ - Queen\nR - Rock\nB - Bishop\nK - Knight\n\nNote: If nothing is entered or this dialogue is canceled it defaults to Queen", "Q");
+						var newPieceString = prompt("Promote to: \nQ - Queen\nR - Rock\nB - Bishop\nK - Knight\n\nNote: If nothing is entered or this dialogue is canceled it defaults to Queen", "Q");
+
 						oldField.piece = player(piece);
 						switch(newPieceString) {
 							case 'R': oldField.piece |= PIECE_TYPE.ROCK << 1;
@@ -690,7 +668,7 @@
 					game.move(clicked, newPosition);
 				}
 			}
-			if(data.action == null) {
+			if(action == null) {
 				this.actions.push(move);
 			}
 /*
@@ -702,7 +680,7 @@
 			}
 			*/
 
-			if(data.update) {
+			if(action == null) {
 				this.updateBoard();
 			}
 
@@ -712,11 +690,10 @@
 				this.turn = PLAYER.WHITE;
 			}
 
+			console.log("games:", this.games.length);
 
-			if(data.render) {
+			if(action == null) {
 				this.render();
-				console.log("games:", this.games.length);
-				console.log("evaluation", this.evaluate());
 			}
 		}
 		import(actions) {
@@ -725,7 +702,7 @@
 					if(action.type == ACTION.MOVE) {
 						this.clicked = action.from;
 						this.getAvailableMoves(this.clicked);
-						this.move(action.from, action.to, {action:action, render:false, update:false});
+						this.move(action.from, action.to, action);
 					} else if(action.type == ACTION.MEASUREMENT) {
 						this.measure(action.position, action.piece);
 						this.updateBoard(false);
@@ -741,146 +718,6 @@
 
 		export() {
 			return this.actions;
-		}
-
-		getLabel(indices) {
-			return colLabels[indices.col] + rowLabels[indices.row];	
-		}
-
-		evaluate() {
-			var value = 0;
-			for(let col = 0; col < columns; ++col) {
-				for(let row = 0; row < rows; ++row) {
-					let field = this.board[col][row];
-					let piece = field.piece;
-					if(piece != PIECE.NONE) {
-						let multiplier = (player(piece) == PLAYER.WHITE) ? 1 : -1;
-
-						value += multiplier * PIECE_VALUE(pieceType(piece)) * field.probability;
-					}	
-				}
-			}
-			return value;
-		}
-
-		makeMove(depth=2) {
-			let bestMove = this.calculateBestMove(depth)[1];
-			let moveState = bestMove.from.state;
-			bestMove.from.state = 1;
-			this.resetClick();
-			for(let state = 0; state < moveState; ++state) {
-				this._click(bestMove.from);
-			}
-			this._click(bestMove.to);
-		}
-		/**
-		 * Calculates the best move using Minimax with Alpha Beta Pruning.
-		 * @param {Number} depth - How many moves ahead to evaluate
-		 * @param {Object} game - The game to evaluate
-		 * @param {string} playerColor - Players color, either 'b' or 'w'
-		 * @param {Number} alpha
-		 * @param {Number} beta
-		 * @param {Boolean} isMaximizingPlayer - If current turn is maximizing or minimizing player
-		 * @return {Array} The best move value, and the best move
-		 */
-		 calculateBestMove(
-		 	depth=2, 
-		 	alpha=Number.NEGATIVE_INFINITY,
-		 	beta=Number.POSITIVE_INFINITY
-		 	) {
-		 	if (depth === 0) {
-		 		return [this.evaluate(), null];
-		 	}
-		 	let value = 0;
-
-			// Recursive case: search possible moves
-			var bestMove = null; // best move not set yet
-			let moves = [];
-			for(let col = 0; col < columns; ++col) {
-				for(let row = 0; row < rows; ++row) {
-					let field = this.board[col][row];
-					let piece = field.piece;
-					if(piece != PIECE.NONE && player(piece) == this.turn) {
-						let states = [MOVE_TYPE.NORMAL];
-						if(pieceType(piece) != PIECE_TYPE.PAWN) {
-							states.push(MOVE_TYPE.QUANTUM);
-						}
-
-						for(let state of states) {
-							let click = {col:col, row:row, state:state, label:this.getLabel({col:col, row:row})};
-							this.getAvailableMoves(click);
-							for(let moveLabel of this.possibleMoves) {
-								let moveIndices = this.getBoardIndices(moveLabel);
-								let move = {
-									label: moveLabel,
-									col: moveIndices.col,
-									row: moveIndices.row,
-									state: 1,
-								}
-								moves.push({from:click, to:move});
-							}
-						}
-					}
-				}	
-			}
-
-			// console.log(JSON.stringify(moves));
-			var possibleMoves = moves;
-			// Set random order for possible moves
-			possibleMoves.sort(function(a, b){return 0.5 - Math.random()});
-			// Set a default best move value
-			var bestMoveValue = this.turn == PLAYER.WHITE ? Number.NEGATIVE_INFINITY
-			: Number.POSITIVE_INFINITY;
-			// Search through all possible moves
-			for (var i = 0; i < possibleMoves.length; ++i) {
-				var move = possibleMoves[i];
-				// Make the move, but undo before exiting loop
-
-				let tmpGame = new Quantumgame();
-				try {
-					let tmpActions = [];
-					for(let action of this.actions) {
-						tmpActions.push(Object.assign({}, action));
-					}
-					tmpGame.recalculateLabels();
-					tmpGame.import(tmpActions);
-					tmpGame.updateBoard(false);
-				} catch(err) {
-					console.log("error importing actions");
-					return;
-				}
-
-				tmpGame.getAvailableMoves(move.from);
-				tmpGame.move(move.from, move.to, { render: false, action: null, update:true});
-				tmpGame.resetClick();
-
-				// Recursively get the value from this move
-				value = tmpGame.calculateBestMove(depth-1, alpha, beta)[0];
-				// Log the value of this move
-				
-				if (this.turn == PLAYER.WHITE) {
-					// Look for moves that maximize position
-					if (value > bestMoveValue) {
-						bestMoveValue = value;
-						bestMove = move;
-					}
-					alpha = Math.max(alpha, value);
-				} else {
-					// Look for moves that minimize position
-					if (value < bestMoveValue) {
-						bestMoveValue = value;
-						bestMove = move;
-					}
-					beta = Math.min(beta, value);
-				}
-
-				// Check for alpha beta pruning
-				if (beta <= alpha) {
-					break;
-				}
-			}
-			// Return the best move, or the only move
-			return [bestMoveValue, bestMove];
 		}
 
 		resetClick() {
@@ -1029,7 +866,7 @@
 					}
 				}
 			}
-			//this.renderGames();
+			// this.renderGames();
 		}
 
 		renderGames() {
@@ -1205,14 +1042,6 @@
 		fieldLabel(indices) {
 			return colLabels[indices.col] + rowLabels[indices.row];
 		}
-
-		undo() {
-			let j = this.actions.length;
-			if(j != 0) {
-				while(game.actions[--j].type != ACTION.MOVE);
-			}
-			_loadGame(game.actions.splice(0, j)); 
-		}
 	}
 
 	const rows 		= 8;
@@ -1359,27 +1188,15 @@
 	}
 
 	function collapse() {
-
-		let chosenGame = Math.floor(Math.random() * game.games.length);
-		
-		game.games = [game.games[chosenGame]];
-		
+		for(let col = 0; col < columns; ++col) {
+			for(let row = 0; row < rows; ++row) {
+				game.collapse({col:col, row:row});
+			}
+		}
 		game.updateBoard();
 		game.render();
 	}
 
-
-	function setAi(player, checked) {
-		aiActive[player] = checked;
-		if(game.turn == player && checked == true) {
-			aiActive[player == 0 ? 1 : 0] = false;
-			document.getElementById('aiActive' + (player == PLAYER.BLACK ? 'White' : 'Black')).checked = false;
-			game.makeMove(aiDepth);
-		}
-	}
-	function setAiDepth(value) {
-		aiDepth = value;
-	}
 
 	function rotateBoard() {
 		log('rotateBoard', "rotateBoard");	
@@ -1431,10 +1248,7 @@
 
 	function undo() {
 		let j = game.actions.length;
-		if(j != 0) {
-			console.log("game", game);
-			while(game.actions[--j].type != ACTION.MOVE);
-		}
+		while(game.actions[--j].type != ACTION.MOVE);
 		_loadGame(game.actions.splice(0, j)); 
 	}
 </script>
@@ -1442,9 +1256,15 @@
 </head>
 
 <body>
-	<canvas id="game" onclick="handleGameClickEvent(event, this)" >Your browser does not support the HTML5 canvas tag.</canvas>
-	<br/><canvas height="0" width="0" id="games" >Your browser does not support the HTML5 canvas tag.</canvas>
+	<div>
+		<canvas id="game" onclick="handleGameClickEvent(event, this)" >Your browser does not support the HTML5 canvas tag.</canvas>
+	</div>
+	<div>
+		<canvas id="games" >Your browser does not support the HTML5 canvas tag.</canvas>
+	</div>
+
 	<br/>
+
 	<button onclick="rotateBoard()">Rotate Board</button>
 	<button onclick="run(newGame())">New Game</button>
 	<button onclick="collapse()">Collapse</button>
@@ -1453,11 +1273,6 @@
 	<button onclick="openGame()">Open</button>
 
 	<button onclick="undo()">Undo</button>
-
-	<br/>AI White: <input id="aiActiveWhite" type="checkbox" onclick="setAi(PLAYER.WHITE, this.checked)" />
-	<br/>AI Black: <input id="aiActiveBlack" type="checkbox" onclick="setAi(PLAYER.BLACK, this.checked)" />
-	<br/>Depth: <input id="aiDepth" type="number" value="2" onblur="setAiDepth(this.value)" /> 
-	<br/>
 	<br/>
 
 <!--
@@ -1557,12 +1372,6 @@ Pieces Black (alive, dead): </br>
 	document.getElementById('piecesBlackDead').value,
 	]
 	];
-
-	let aiActive = [
-	document.getElementById('aiActiveWhite').checked,
-	document.getElementById('aiActiveBlack').checked,
-	];
-	let aiDepth = document.getElementById('aiDepth').value;
 
 	let imPieceData = [{
 		offset: {y:25, x:35}, height:76, width: 56,

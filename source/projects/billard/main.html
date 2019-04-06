@@ -1,0 +1,633 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+
+	<title>Billard</title>
+
+	<style>
+	.hidden {
+		display: none;
+		visibility: none;
+	}
+</style>
+
+<script type="text/javascript">
+
+	// lengths in mm
+
+	const fieldLength = 2540;
+	const fieldWidth = fieldLength / 2;	
+
+	const pocketWidth = {
+		corner: {
+			In: 110,
+			Out: 130,
+			angle: 35,
+			restriction: 37.5
+		},
+		middle : {
+			In: 115,
+			Out: 140,
+			angle: 20,
+			restriction: 7.5,
+		}
+	};
+
+	const middleLine = fieldLength / 2;
+	const headLine = fieldLength / 4;
+	const footLine = fieldLength * 3 / 4;
+
+	const ballRadius = 28.6;
+
+
+
+
+	const PLAYER = {
+		ONE: 0,
+		TWO: 1,
+	};
+
+	// speed in mm per second
+
+	class Vector2 {
+		constructor(x=0, y=0) {
+			this.x = x;
+			this.y = y;
+			return this;
+		}
+
+		length() {
+			return Math.pow(Math.pow(this.x, 2) + Math.pow(this.y, 2), 1/2);
+		}
+		distance(vector) {
+			return new Vector2().set(vector).minus(this).length();
+		}
+
+		set(vector) {
+			return new Vector2(vector.x, vector.y);
+		}
+		plus(vector) {
+			return new Vector2(this.x+vector.x, this.y+vector.y);
+		}
+		minus(vector) {
+			return new Vector2(this.x-vector.x, this.y-vector.y);
+		}
+		multiply(scalar) {
+			return new Vector2(this.x * scalar, this.y * scalar);
+		}
+
+		compare(vector, difference) {
+			return Math.abs(this.x - vector.x) <= Math.abs(difference.x) && Math.abs(this.y - vector.y) <= Math.abs(difference.y);
+		}
+	}
+
+	class ConvexPolygon {
+		constructor(points, color) {
+			this.points = points;
+			this.color = color;
+		}
+	}
+
+	class Ball {
+		constructor(pos, color, radius=ballRadius, speed = new Vector2()) {
+			this.pos = pos;
+			this.radius = radius;
+			this.color = color;
+			this.speed = speed;
+		}
+
+
+
+		move(t) { // t in seconds
+			this.pos = this.pos.plus(this.speed.multiply(t));
+		}
+
+		intersect(ball1, ball2) {
+			return ball1.distance(ball2) <= (ball1.radius + ball2.radius);
+		}
+		distance(ball2) {
+			return this.pos.distance(ball2.pos);
+		}
+	}
+
+	class Billard {
+		constructor() {
+			this.turn = PLAYER.ONE;
+
+			let middleY = fieldWidth / 2 + edge.inner.width + edge.outer.width;
+			let headX = fieldLength / 4 + edge.inner.width + edge.outer.width;
+			let tailX = fieldLength * 3 / 4 + edge.inner.width + edge.outer.width;
+			
+			this.mouse = null;
+
+			this.pockets = [
+			new Ball(new Vector2(), '#000000', pocketSize),
+			new Ball(new Vector2(), '#000000', pocketSize),
+			new Ball(new Vector2(), '#000000', pocketSize),
+			new Ball(new Vector2(), '#000000', pocketSize),
+			new Ball(new Vector2(), '#000000', pocketSize),
+			new Ball(new Vector2(), '#000000', pocketSize),
+			];
+
+			this.whiteBall = new Ball(new Vector2(tailX, middleY), '#ffffff', ballRadius);
+
+			let ballX = headX;
+			let ballY = middleY;
+
+			this.balls = [];
+			for(let i = 1; i < 6; ++i) {
+				ballX -= Math.sqrt(5) * ballRadius;
+				ballY -= ballRadius;
+				for(let j = 0; j < i; ++j) {
+					this.balls.push(new Ball(new Vector2(ballX, ballY + j * 2 * ballRadius), '#00cc00'));
+				}
+			}
+			this.balls[4].color = '#000000';
+			for(let ball of this.balls) {
+				ball.radius = ballRadius;
+			}
+		}
+
+		click(x, y) {
+			this.shoot(new Vector2(x, y).minus(new Vector2(toPixel(this.whiteBall.pos.x), toPixel(this.whiteBall.pos.y))));
+		}
+		hover(x, y) {
+			if(this.whiteBall.speed.length() == 0) {
+				this.mouse = new Vector2(x, y);
+
+				this.render();
+			}
+		}
+
+		shoot(speed) {
+			this.whiteBall.speed = speed;
+			this.prepare();
+			while(this.whiteBall.speed.compare(new Vector2(), new Vector2(0.001, 0.001)) == false) {
+				this.render();
+				this.whiteBall.speed = this.whiteBall.speed.multiply(0.95);
+			}
+			this.whiteBall.speed = new Vector2();
+		}
+
+		render() {
+			let canvas 			= document.getElementById(canvasId);
+
+			/* game will be drawn horizontally */
+			let ctx 			= canvas.getContext("2d");
+			ctx.canvas.width  	= this.length;
+			ctx.canvas.height 	= this.width;
+
+			ctx.fillStyle = edge.outer.color;
+			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+			ctx.fillStyle = fieldColor;
+			ctx.fillRect(this.edge.outerWidth, this.edge.outerWidth, this.outerFieldLength, this.outerFieldWidth);
+
+			// draw pockets
+			for(let pocket of this.pockets) {
+				ctx.fillStyle = pocket.color;
+
+				ctx.beginPath();
+				ctx.ellipse(toPixel(pocket.pos.x), toPixel(pocket.pos.y), toPixel(pocket.radius), toPixel(pocket.radius), 0, 0, 2 * Math.PI);
+				ctx.fill();
+			}
+
+			// draw inner edge
+
+			// draw balls
+
+			for(let ball of this.balls.concat(this.whiteBall)) {
+				ctx.fillStyle = ball.color;
+
+				ctx.beginPath();
+				ctx.ellipse(toPixel(ball.pos.x), toPixel(ball.pos.y), toPixel(ball.radius), toPixel(ball.radius), 0, 0, 2 * Math.PI);
+				ctx.fill();
+			}
+
+			// draw mouse arrow
+			if(this.mouse != null) {
+				ctx.strokeStyle = directionIndicatorColor;
+
+				ctx.beginPath();
+				ctx.moveTo(toPixel(this.whiteBall.pos.x), toPixel(this.whiteBall.pos.y));
+				ctx.lineTo(this.mouse.x, this.mouse.y);
+				ctx.stroke();
+			}
+		}
+
+		prepare() {
+			this.edge = {
+				innerWidth: toPixel(edge.inner.width),
+				outerWidth: toPixel(edge.outer.width),
+				width: toPixel(edge.inner.width + edge.outer.width),
+			};
+
+			this.innerFieldLength = toPixel(fieldLength);
+			this.innerFieldWidth = toPixel(fieldWidth);
+
+			this.outerFieldLength = toPixel(fieldLength + 2*edge.inner.width);
+			this.outerFieldWidth = toPixel(fieldWidth + 2*edge.inner.width);
+
+			this.length = this.edge.width * 2 + this.innerFieldLength;
+			this.width = this.edge.width * 2 + this.innerFieldWidth;
+
+			let pocketsBottomY = edge.outer.width + edge.inner.width + fieldWidth + edge.inner.width;
+			let pocketsMiddleX = (edge.outer.width + edge.inner.width) + fieldLength / 2;
+			let pocketsRightX = edge.outer.width + 2*edge.inner.width + fieldLength;
+			this.pockets[0].pos = {
+				x: edge.outer.width,
+				y: edge.outer.width,
+			}
+			this.pockets[1].pos = {
+				x: pocketsMiddleX,
+				y: edge.outer.width,
+			}
+			this.pockets[2].pos = {
+				x: pocketsRightX,
+				y: edge.outer.width,
+			}
+			this.pockets[3].pos = {
+				x: edge.outer.width,
+				y: pocketsBottomY,
+			}
+			this.pockets[4].pos = {
+				x: pocketsMiddleX,
+				y: pocketsBottomY,
+			}
+			this.pockets[5].pos = {
+				x: pocketsRightX,
+				y: pocketsBottomY,
+			}
+			for(let pocket of this.pockets) {
+				pocket.radius = pocketSize;
+			}
+		}
+	}
+
+	/* Abstand Markierungen (C): SFL / 8 */
+
+	let loggingKeys = {
+		game: false,
+
+		newGame: false,
+		openGame: false,
+		saveGame: false,
+
+		setCanvasId: false,
+		setSquareSize: false,
+		setColorWhite: false,
+		setColorBlack: false,
+
+		handleKeyEvent: false,
+		handleGameClickEvent: false,
+	};
+
+	function log(key, ...messages) {
+		if(!key in loggingKeys) {
+			return;
+		}
+		if(loggingKeys[key] == true) {
+			console.log(key.trim().toUpperCase(), '|', messages);
+		}
+	}
+
+	/*
+	function setCanvasId(newCanvasId) {
+		log('setCanvasId', "setCanvasId");	
+		log('setCanvasId', "New Canvas Id:", canvasId);	
+		canvasId = newCanvasId;
+	}
+	function setRowCount(newRowCount) {
+		log('setRowCount', "setRowCount");	
+		log('setRowCount', "New Row Count:", newRowCount);
+		rows = newRowCount;
+	}
+	function setColumnCount(newColumnCount) {
+		log('setColumnCount', "setColumnCount");	
+		log('setColumnCount', "New Column Count:", newColumnCount);
+		columns = newColumnCount;
+	}
+
+	function setSquareSize(newSize) {
+		log('setSquareSize', "setSquareSize");	
+		log('setSquareSize', "New Square Size:", newSize);
+		squareSize 	= (newSize != null ? parseInt(newSize) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+	function setBorderSize(newSize) {
+		log('setSquareSize', "setSquareSize");	
+		log('setSquareSize', "New Square Size:", newSize);
+		borderSize 	= (newSize != null ? parseInt(newSize) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+
+	function setBorderColor(newColor) {
+		log('setBorderColor', "setColorWhite");	
+		log('setBorderColor', "New Color White Squares:", newColor);
+		borderColor 	= newColor;
+		game.render();
+	}
+
+	function setSquareColors(newColor, color, state) {
+		squareColors[color][state] 	= newColor;
+		game.render();
+	}
+
+	function setRowLabels(newLabels) {
+		log('setRowLabels', "setRowLabels");	
+		log('setRowLabels', "New Row Labels:", newLabels);
+		rowLabels 	= newLabels;
+		game.render();
+	}
+	function setColumnLabels(newLabels) {
+		log('setColumnLabels', "setColumnLabels");	
+		log('setColumnLabels', "New Column Labels:", newLabels);
+		colLabels 	= newLabels;
+		game.render();
+	}
+
+	function setLegendSpaceLeft(newSpace) {
+		log('setLegendSpaceLeft', "setLegendSpaceLeft");	
+		log('setLegendSpaceLeft', "New Column Labels:", newSpace);
+		legendSpaceLeft 	= (newSpace != '' ? parseInt(newSpace) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+	function setLegendSpaceBottom(newSpace) {
+		log('setLegendSpaceBottom', "setLegendSpaceBottom");	
+		log('setLegendSpaceBottom', "New Column Labels:", newSpace);
+		legendSpaceBottom 	= (newSpace != '' ? parseInt(newSpace) : 0);
+		game.recalculatePositions();
+		game.render();
+	}
+
+	function recalculatePieceRowData() {
+		for(let i = 0; i < 2; ++i) {
+			for(let j = 0; j < 2; ++j) {
+				imY[i][j] = pieceColors[i][j] * imPieceSize;	
+			}
+		}
+	}		
+	function setPieceColors(newRow, player, state) {
+		pieceColors[player][state] = (newRow != '' ? parseInt(newRow) : 0);
+
+		recalculatePieceRowData();
+
+		game.render();
+	}
+
+	function collapse() {
+		for(let col = 0; col < columns; ++col) {
+			for(let row = 0; row < rows; ++row) {
+				game.collapse({col:col, row:row});
+			}
+		}
+		game.updateBoard();
+		game.render();
+	}
+
+
+	function rotateBoard() {
+		log('rotateBoard', "rotateBoard");	
+		game.rotate();
+		game.render();
+	}
+
+	function saveGame() {
+		log('saveGame', "saveGame");	
+		let data = game.export();
+		let s = JSON.stringify(data);
+		alert(s);
+		console.log(s);
+	}
+
+	function _loadGame(json) {
+		newGame();
+		game.import(json);
+		game.updateBoard(false);
+		game.render();	
+	}
+	function openGame() {
+		log('openGame', "openGame");	
+
+		_loadGame(JSON.parse(prompt("Data:", "")));
+	}
+
+	function undo() {
+		let j = game.actions.length;
+		while(game.actions[--j].type != ACTION.MOVE);
+		_loadGame(game.actions.splice(0, j)); 
+	}
+	*/
+
+
+	function newGame() {
+		game = new Billard();
+		game.prepare();
+		game.render();
+	}
+
+	function handleKeyEvent(event, input, ...args) {
+		let key = event.keyCode;
+		if(key == 13) {
+			if(input.oninput != null) {
+				input.oninput(event.target.value, args);
+			}
+			if(input.onblur != null) {
+				input.onblur(event.target.value, args);
+			}
+		}
+	}
+
+	function handleGameClickEvent(event, canvas) {
+		game.click(event.offsetX, event.offsetY);
+	}
+
+	function handleGameMouseMove(event, canvas) {
+		game.hover(event.offsetX, event.offsetY);
+	}
+	function deleteCursor() {
+		game.mouse = null;
+	}
+
+	function setPixelLength(newValue) {
+		pixelLength 	= (newValue != null ? parseInt(newValue) : 0);
+		game.render();
+	}
+
+	function setDirectionIndicatorColor(newValue) {
+		directionIndicatorColor 	= newValue;
+		game.render();
+	}
+
+	function setEdge(newValue, type1, type2) {
+		if(type2 == 'width') {
+			newValue = (newValue != null ? parseInt(newValue) : 0);
+		} else {
+			console.log(newValue);
+		}
+		edge[type1][type2] = newValue;
+		game.render();
+	}
+
+	function setPocketSize(newValue) { // length in mm
+		pocketSize 	= (newValue != null ? parseInt(newValue) : 0);
+		game.render();
+	}
+	function setPocketColor(newValue) {
+		pocketColor 	= newValue;
+		game.render();
+		console.log(newValue);
+	}
+
+	function setBallColor(newValue, index) {
+		ballColor[index] 	= newValue;
+		game.render();
+		console.log(newValue);
+	}
+	function setFieldColor(newValue) {
+		fieldColor 	= newValue;
+		game.render();
+		console.log(newValue);
+	}
+	function toPixel(length) { // length in mm
+		return length / pixelLength;
+	}
+</script>
+
+</head>
+
+<body>
+<canvas id="game" onclick="handleGameClickEvent(event, this)" onmousemove="handleGameMouseMove(event, this)" onmouseout="deleteCursor(event, this)">Your browser does not support the HTML5 canvas tag.</canvas>
+
+<br/>
+
+<button onclick="newGame()">New Game</button>
+<!--
+	<button onclick="rotateBoard()">Rotate Table</button>
+	<button onclick="collapse()">Collapse</button>
+
+	<button onclick="saveGame()">Save</button>
+	<button onclick="openGame()">Open</button>
+
+	<button onclick="undo()">Undo</button>
+-->
+<br/>
+
+<!--
+	Canvas Id: 
+	<input type="text" value="game" onblur="setCanvasId(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+	Rows: 
+	<input type="number" value="8" onblur="setRowCount(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+	columns: 
+	<input type="number" value="8" onblur="setColumnCount(this.value)" onkeypress="handleKeyEvent(event, this)" />
+	<br/>
+<div class="">
+-->
+Min. Framerate: </br>
+<input id="minFramerate" type="number" value="100" onblur="setPixelLength(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+</br>
+Pixel Length (in mm): </br>
+<input id="pixelLength" type="number" step="0.01" value="3.5" onblur="setPixelLength(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+</br>
+
+Direction Indicator Color: </br>
+<input id="directionIndicatorColor" type="color" value="#000000" oninput="setDirectionIndicatorColor(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+<br/>
+Field Color: </br>
+<input id="fieldColor" type="color" value="#00ee00" oninput="setFieldColor(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+<br/>
+Outer Edge Width: </br>
+<input id="outerEdgeWidth" type="number" value="150" onblur="setEdge(this.value, 'outer', 'width')" onkeypress="handleKeyEvent(event, this, 'outer', 'width')" /><br/>
+Outer Edge Color: </br>
+<input id="outerEdgeColor" type="color" value="#cf412f" oninput="setEdge(this.value, 'outer', 'color')" onkeypress="handleKeyEvent(event, this, 'outer', 'color')" /><br/>
+
+Inner Edge Width: </br>
+<input id="innerEdgeWidth" type="number" value="40" onblur="setEdge(this.value, 'inner', 'width')" onkeypress="handleKeyEvent(event, this, 'inner', 'width')" /><br/>
+Inner Edge Color: </br>
+<input id="innerEdgeColor" type="color" value="#cfcfcf" oninput="setEdge(this.value, 'inner', 'color')" onkeypress="handleKeyEvent(event, this, 'inner', 'color')" /><br/>
+<br/>
+Pocket Size: </br>
+<input id="pocketSize" type="number" value="110" onblur="setPocketSize(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+Pocket Color: </br>
+<input id="pocketColor" type="color" value="#cfcfcf" oninput="setPocketColor(this.value)" onkeypress="handleKeyEvent(event, this)" /><br/>
+<br/>
+Ball Colors: </br>
+<input id="whiteBallColor" type="color" value="#ffffff" oninput="setBallColor(this.value, 0)" onkeypress="handleKeyEvent(event, this, 0)" />
+<input id="blackBallColor" type="color" value="#000000" oninput="setBallColor(this.value, 1)" onkeypress="handleKeyEvent(event, this, 1)" />
+<input id="fullBallsColor" type="color" value="#cc0000" oninput="setBallColor(this.value, 2)" onkeypress="handleKeyEvent(event, this, 2)" />
+<input id="halfBallsColor" type="color" value="#00cc00" oninput="setBallColor(this.value, 3)" onkeypress="handleKeyEvent(event, this, 3)" />
+<br/><br/>
+</div>
+
+<script type="text/javascript">
+
+	let canvasId	= "game";
+
+	let minFrameRate = parseInt(document.getElementById('minFramerate').value);
+
+	let pixelLength	= parseInt(document.getElementById('pixelLength').value);
+	let edge = {
+		inner: {
+			width: parseInt(document.getElementById('innerEdgeWidth').value),
+			color: document.getElementById('innerEdgeColor').value,
+		},
+		outer: {
+			width: parseInt(document.getElementById('outerEdgeWidth').value),
+			color: document.getElementById('outerEdgeColor').value,
+		},
+	}
+
+	let directionIndicatorColor = document.getElementById('directionIndicatorColor').value;;
+
+	let pocketSize	= parseInt(document.getElementById('pocketSize').value);
+	let pocketColor	= document.getElementById('pocketColor').value;
+
+	let fieldColor = document.getElementById('fieldColor').value;
+	let ballColor	= [
+	document.getElementById('whiteBallColor').value,
+	document.getElementById('blackBallColor').value,
+	document.getElementById('fullBallsColor').value,
+	document.getElementById('halfBallsColor').value,
+	];
+
+/*
+	let imPieceData = [{
+		offset: {y:25, x:35}, height:76, width: 56,
+	}, {
+		offset: {y:25, x:25}, height:77, width: 78,
+	}, {
+		offset: {y:18, x:22}, height:90, width: 84,
+	}, {
+		offset: {y:25, x:31}, height:76, width: 66,
+	}, {
+		offset: {y:22, x:19}, height:83, width: 89,
+	}, {
+		offset: {y:21, x:24}, height:85, width: 79,
+	}];
+	let imY = [[],[]];
+	imPieceSize = 128;
+	recalculatePieceRowData();
+
+
+	var pieceImage = document.createElement('img');
+	pieceImage.src= 'http://oi67.tinypic.com/nq8bk1.jpg';
+	pieceImage.onload = function() {
+		if(game != null) {
+			game.render();
+		} else {
+			newGame();
+		}
+	}
+	*/
+
+	newGame();
+</script>
+</body>
+</html>
