@@ -1363,7 +1363,7 @@
 		let chosenGame = Math.floor(Math.random() * game.games.length);
 		
 		game.games = [game.games[chosenGame]];
-		
+
 		game.updateBoard();
 		game.render();
 	}
@@ -1404,7 +1404,6 @@
 		log('saveGame', "saveGame");	
 		let data = game.export();
 		let s = JSON.stringify(data);
-		alert(s);
 		console.log(s);
 	}
 
@@ -1453,13 +1452,14 @@
 	<button onclick="openGame()">Open</button>
 
 	<button onclick="undo()">Undo</button>
-
+	
+	<br/>
+	<br/>
+<!--
 	<br/>AI White: <input id="aiActiveWhite" type="checkbox" onclick="setAi(PLAYER.WHITE, this.checked)" />
 	<br/>AI Black: <input id="aiActiveBlack" type="checkbox" onclick="setAi(PLAYER.BLACK, this.checked)" />
 	<br/>Depth: <input id="aiDepth" type="number" value="2" onblur="setAiDepth(this.value)" /> 
-	<br/>
-	<br/>
-
+-->
 <!--
 	Canvas Id: 
 	<input type="text" value="game" onblur="setCanvasId(this.value)" onkeypress="handleKeyEvent(event, this)" />
@@ -1559,10 +1559,11 @@ Pieces Black (alive, dead): </br>
 	];
 
 	let aiActive = [
-	document.getElementById('aiActiveWhite').checked,
-	document.getElementById('aiActiveBlack').checked,
+	false, false
+// 	document.getElementById('aiActiveWhite').checked,
+//	document.getElementById('aiActiveBlack').checked,
 	];
-	let aiDepth = document.getElementById('aiDepth').value;
+	let aiDepth = 1; // document.getElementById('aiDepth').value;
 
 	let imPieceData = [{
 		offset: {y:25, x:35}, height:76, width: 56,
