@@ -60,8 +60,6 @@
 \newcommand{\powerset}{\mathcal{P}}
 
 %---------- other commands that are used often ----------------------------------------
-
-\if true false
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 % \DeclarePairedDelimiterX{\norm}[1]{\lVert}{\rVert}{#1}
 \newcommand{\absolute}[1]{\left|#1\right|}
@@ -71,7 +69,6 @@
 \newcommand{\my}{\mu}
 \newcommand{\eps}{\varepsilon}
 \renewcommand{\phi}{\varphi}
-\fi
 
 %------------------------- Theorem and Proof Environments -------------------------------------------------
 
@@ -84,12 +81,12 @@
 % and this gives a name to the theorem
 
 
-    \providecommand{\myDefCounter}{section}
+\providecommand{\myDefCounter}{section}
     \ifthenelse{ % if
-      \equal{\myDefCounter}{section}
+    \equal{\myDefCounter}{section}
     }{ % then
     }{ % else
-      \def\themyDefCounter{\thechapter.\arabic{myDefCounter}}
+    \def\themyDefCounter{\thechapter.\arabic{myDefCounter}}
     }
 
 \newcounter{TheoremCounter}
@@ -99,7 +96,7 @@
   \vspace{.9cm}
   \noindent    
   \textbf{
-    Theorem \theTheoremCounter \quad \ifthenelse{\equal{#1}{}}{}{({#1})}
+    Satz \theTheoremCounter \quad \ifthenelse{\equal{#1}{}}{}{({#1})}
     \newline
   }
 } {
@@ -116,14 +113,21 @@
 \newenvironment{corollary}[1]{
   \vspace{.9cm}
   \noindent
-  {\bf Corollary {#1}}
+  {\bf Korrolar {#1}}
 } {
   \vspace{.1cm}
 }
 \newenvironment{definition}[1]{
   \vspace{.9cm} 
   \noindent 
-  {\bf Definition}
+  {\bf Definition }
+} { 
+  \vspace{.1cm}
+}
+\newenvironment{preposition}[1]{
+  \vspace{.9cm} 
+  \noindent 
+  {\bf Proposition}
 } { 
   \vspace{.1cm}
 }

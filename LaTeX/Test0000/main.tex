@@ -1,0 +1,66 @@
+\documentclass[12pt]{article}   % you have 10pt, 11pt, or 12pt options
+
+
+\iffalse
+Document Sectioning
+LATEX can organize, number, and index chapters and sections of document. There are up to 7 levels of depth for defining sections depending on the document class:
+
+-1	\part{part}
+0	\chapter{chapter}
+1	\section{section}
+2	\subsection{subsection}
+3	\subsubsection{subsubsection}
+4	\paragraph{paragraph}
+5	\subparagraph{subparagraph}
+\part and \chapter are only available in report and book document classes.
+\fi
+
+\include{header}
+
+\title{LaTeX \, Template and Tutorial for Math Modelers}
+\author{Not Me}
+\date{\today}
+
+
+\begin{document}
+
+\section{Kapitel 1: Einführung}
+
+
+\section{First section}
+
+Some text before the first algorithm environment \ldots
+
+1	\section{section}
+2	\subsection{subsection}
+3	\subsubsection{subsubsection}
+4	\paragraph{paragraph}
+5	\subparagraph{subparagraph}
+
+\begin{theorem}[Text]
+Some thoughts$\ldots$ \label{alg:first}
+\end{theorem}
+
+\begin{lemma}{}
+Some thoughts$\ldots$ \label{alg:first}
+\end{lemma}
+
+\begin{theorem}
+More thoughts$\ldots$ \label{alg:second}
+\end{theorem}
+
+Some text after the second algorithm environment \ldots
+
+\section{Second section}
+
+\begin{theorem}
+Further thoughts$\ldots$ \label{alg:third}
+\end{theorem}
+
+\section{Third section}
+
+As we showed in algorithms \ref{alg:first}, \ref{alg:second}, 
+
+and \ref{alg:third}, \ldots 
+
+\end{document}

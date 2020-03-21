@@ -1,0 +1,150 @@
+% Source: http://home.sandiego.edu/~dhoffoss/latex/latex-paper-template.tex
+
+%----------------------------------------------------------------------------------------------------
+
+\setlength{\textwidth}{17.2cm}     % if you change this, consider changing
+\setlength{\evensidemargin}{-.3cm} % side margins to retain centering
+\setlength{\oddsidemargin}{-.3cm}
+
+\setlength{\textheight}{23cm}   % if you change this, consider changing
+\setlength{\topmargin}{-2cm}  % top margin to retain centering
+\setlength{\headsep}{1.6cm}
+
+%----------------------------------------------------------------------------------------------------
+
+\usepackage{blindtext}
+\usepackage{autonum}
+\usepackage[ngerman]{babel}
+\usepackage{latexsym}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{float}
+\usepackage{subfigure}
+\usepackage{makeidx}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{lastpage}
+\usepackage{url}
+
+% Mathematik
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amstext}
+\usepackage{mathtools}
+% \usepackage{extarrows}
+% \usepackage{tikz}
+% \usetikzlibrary{graphs}
+% \usetikzlibrary[graphs]
+
+% Sonstige
+\usepackage{ifthen}
+
+%----------------------------------------------------------------------------------------------------
+
+\DeclareSymbolFont{AMSb}{U}{msb}{m}{n}  
+\DeclareMathSymbol{\Sph}{\mathbin}{AMSb}{"53} 
+\DeclareMathSymbol{\T}{\mathbin}{AMSb}{"54} 
+\DeclareMathSymbol{\K}{\mathbin}{AMSb}{"4B} 
+\DeclareMathSymbol{\C}{\mathbin}{AMSb}{"43} 
+\DeclareMathSymbol{\R}{\mathbin}{AMSb}{"52} 
+\DeclareMathSymbol{\Q}{\mathbin}{AMSb}{"51} 
+\DeclareMathSymbol{\Z}{\mathbin}{AMSb}{"5A} 
+\DeclareMathSymbol{\N}{\mathbin}{AMSb}{"4E} 
+
+\newcommand{\powerset}{\mathcal{P}}
+
+%----------------------------------------------------------------------------------------------------
+
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+% \DeclarePairedDelimiterX{\norm}[1]{\lVert}{\rVert}{#1}
+\newcommand{\absolute}[1]{\left|#1\right|}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\dotproduct}[1]{\left<#1\right>}
+
+\newcommand{\my}{\mu}
+\newcommand{\eps}{\varepsilon}
+\renewcommand{\phi}{\varphi}
+
+%----------------------------------------------------------------------------------------------------
+
+\newcounter{counter}[subsection]
+\newenvironment{template}[2]{
+	\refstepcounter{counter}
+  	\vspace{.9cm}
+  	\noindent    
+
+  	\textbf {
+	    \thesubsection.\thecounter \quad #1  \ifthenelse{\equal{#2}{}}{}{({#2})}
+	    \newline
+  	}
+  	\begingroup\itshape
+} {
+	\endgroup
+  	\par\bigskip  
+}
+\newenvironment{theorem}[1][]{
+	\begin{template}{Satz}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{lemma}[1][]{
+	\begin{template}{Lemma}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{corollary}[1][]{
+	\begin{template}{Korrolar}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{definition}[1][]{
+	\begin{template}{Definition}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{proposition}[1][]{
+	\begin{template}{Proposition}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{remark}{
+	\textbf{Remark: }
+} {
+}
+
+
+
+
+
+
+\if true flase
+\frac{num}{den}
+\[1 \neq 2\]
+\begin{gather}\end{gather} 
+\begin{align}\end{align}
+
+\usepackage{pxfonts}
+
+\newenvironment{testing}[3][dummy]{
+	text1: #1, text2: #2, text3: #3
+	\newline
+} {
+}
+
+\newtheorem{test1}{Test}[counter]
+\newtheorem{test2}[test1]{Definition}
+
+\newenvironment{Satz}[3][dummy]{
+	text1: #1, text2: #2
+	\newline
+} {
+}
+
+\newtheorem{test1}{Test}[counter]
+\newtheorem{test2}[test1]{Definition}
+\fi
+

@@ -1,0 +1,55 @@
+
+% Mathematik
+\usepackage{ifthen}
+\usepackage{amsmath}
+
+\usepackage{mdframed}
+
+\newcounter{counter}[section]
+\newenvironment{template}[2]{
+	\refstepcounter{counter}
+  	\noindent    
+
+  	\textbf {
+	    \thesection.\thecounter \quad #1  \ifthenelse{\equal{#2}{}}{}{({#2})}
+	    \newline
+	    \newline
+  	}
+  	\begingroup\itshape
+} {
+	\endgroup
+}
+\newenvironment{theorem}[1][]{
+	\begin{template}{Theorem}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{lemma}[1][]{
+	\begin{template}{Lemma}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{corollary}[1][]{
+	\begin{template}{Corollary}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{definition}[1][]{
+	\begin{template}{Definition}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{proposition}[1][]{
+	\begin{template}{Proposition}{#1}
+} {
+	\end{template}
+} 
+\newenvironment{proof}{
+	\textit{Proof:}
+} {
+	
+} 
+\newenvironment{remark}{
+	\textbf{Remark: }
+} {
+}
