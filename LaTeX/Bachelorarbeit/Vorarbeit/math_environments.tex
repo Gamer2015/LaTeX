@@ -3,21 +3,20 @@
 \usepackage{ifthen}
 \usepackage{amsmath}
 
-\usepackage{mdframed}
-
-\newcounter{counter}[section]
+\newcounter{theoremcounter}[section]
+\renewcommand{\thetheoremcounter}{\thesection.\arabic{theoremcounter}}
 \newenvironment{template}[2]{
-	\refstepcounter{counter}
-  	\noindent    
+	\refstepcounter{theoremcounter}
 
   	\textbf {
-	    \thesection.\thecounter \quad #1  \ifthenelse{\equal{#2}{}}{}{({#2})}
-	    \newline
-	    \newline
+	    \thetheoremcounter \quad #1  \ifthenelse{\equal{#2}{}}{}{({#2})}
   	}
+	\begin{quote}
   	\begingroup\itshape
 } {
 	\endgroup
+	\end{quote}
+	\smallskip
 }
 \newenvironment{theorem}[1][]{
 	\begin{template}{Theorem}{#1}

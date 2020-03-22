@@ -1,0 +1,161 @@
+%design-einstellungen
+
+%==============================================================================
+%Farbdefinitionen: (bei Bedarf ändern) Hinweis: Beim Ausdrucken sind die Farben meist etwas dunkler als am Bildschirm (druckerabhängig)
+%==============================================================================
+
+\definecolor{igblaud}{RGB}{0,85,212}
+\definecolor{blau1}{RGB}{0, 101, 186}
+
+%Hellblau:
+\definecolor{igblauh}{RGB}{42,127,255}
+\definecolor{blockbg}{RGB}{214, 228, 255}
+\definecolor{igblaubg}{RGB}{214, 228, 255}
+
+\definecolor{igoranged}{RGB}{255,121,13}
+\definecolor{igorange}{RGB}{255, 216, 77}
+\definecolor{igorangehell}{RGB}{255, 213, 142}
+
+\definecolor{hellgrau}{cmyk}{0, 0, 0, 0.4}
+
+%farbzuweisungen:
+\colorlet{farbe1}{blau1}
+\colorlet{farbe2}{igblauh}
+\colorlet{farbe3}{igorange}
+\colorlet{farbe4}{igorangehell}
+
+%==============================================================================
+%Überschriftengestaltungen: Je nach Lust und Laune ändern
+%==============================================================================
+
+\addtokomafont{sectioning}{\sffamily}
+
+\addtokomafont{chapter}{\mdseries}
+\addtokomafont{part}{\color{farbe1}}
+\addtokomafont{partentry}{\color{farbe1}}
+\addtokomafont{chapter}{\color{farbe1}}
+\addtokomafont{section}{\mdseries\color{farbe1}}
+\addtokomafont{subsection}{\mdseries\color{farbe2}}
+
+
+%\renewcommand*{\chapterheadstartvskip}{\vspace*{0mm}} %umdefinieren des abstands vor der chapter-überschrift, wenn gewünscht.
+
+%==============================================================================
+%Seitenränder
+%==============================================================================
+
+\usepackage[a4paper]{geometry}
+
+\geometry{
+		%twoside, %auskommentiert = einseitiges Layout
+		bottom=25mm, %abstand text - rand
+		top = 30mm, %abstand rand - text
+		headsep = 1cm} %abstand kopfzeile - text
+		
+
+%bleibt für text: 210-60 = 150 mm
+
+%Ränderanpassung für pdf-Version und Druckversion
+
+\ifthenelse{\boolean{boolweb}}
+{\geometry{inner=30mm,
+		outer=30mm %symmetrische Ränder in digitalversion
+		}} 
+{\geometry{inner=35mm, 
+		outer=25mm %innerer rand größer wegen bindung
+		}}
+
+%seitenabschluss unten nicht zwingend durch leerraumaufüllung auf gleicher höhe:
+\raggedbottom
+
+%==============================================================================
+%Kopf und Fußzeile -- allgemein
+%==============================================================================
+
+\usepackage{fancyhdr}		%Paket für Kopf- und Fußzeile
+
+
+\pagestyle{fancy}
+\fancyhf{} 				%alle Kopf- und Fußzeilenfelder bereinigen
+
+%Felder befüllen:
+\fancyhead[R]{\small\color{hellgrau}\thepage}					%Seitenanzahl oben rechts 
+
+%Formatierung Kolumnentitel
+\renewcommand{\chaptermark}[1]{%
+ \markboth{%
+Kap. \thechapter.\ #1
+ }{}}% vgl. Kursfolien Design, Seite 19.
+
+
+\fancyhead[L]{\small\color{hellgrau}\nouppercase\leftmark}		%kapitelname: links oben
+%ersetze \leftmark durch \rightmark, um die aktuelle section zu bekommen...
+
+
+%Linienbreiten:
+\renewcommand{\footrulewidth}{0pt} 					% keine Trennlinie unten
+\renewcommand{\headrulewidth}{1.5pt} 				% obere Trennlinie
+%}
+
+
+%Umgestaltung Kopfzeilentrennlinie
+\renewcommand\headrule
+  {\color{hellgrau!60}%										%Farbzuweisung der Linie
+  \vspace{2pt}												%vertikaler Abstand
+  \hrule height\headrulewidth width\headwidth		%Linie (Höhe, Breite) zeichnen
+ }
+
+
+%Umgestaltung plain-Style (wird z.B. bei Chapter usw. automatisch aufgerufen
+
+\fancypagestyle{plain}{%
+\fancyhf{} 					%Felder bereinigen
+\fancyhead[R]{\small\color{hellgrau}\thepage}		%Seitenzahl, oben, außen
+}
+
+
+
+%==============================================================================
+%Fußnotengestaltungen
+%==============================================================================
+
+
+\usepackage[bottom, splitrule]{footmisc}
+\newcommand{\mfootnote}[1]{\footnote{#1}$^)$}	%meine eigener fußnoten befehl. Verwenden statt \foonote{...}. 
+\deffootnote[0mm]{0mm}{0mm}{\textbf{\thefootnotemark)} } %Fußnoten beginnen mit fetter, normaler zahl und Klammer. Wenn nicht gewünscht, dann % davor
+
+
+%==============================================================================
+%Beschriftungen von Abbildungen und Tabellen
+%==============================================================================
+
+\usepackage[labelfont=bf]{caption} %fette captions (z.B. Tab. xxx)
+
+\captionsetup[figure]{name=Abb.}
+\captionsetup[table]{name=Tab.}
+
+%==============================================================================
+%aufzählungen etc
+%==============================================================================
+
+%itemize-symbol verschiedener ebenen: quadrat in farbe
+\renewcommand{\labelitemi}{\color{farbe2}\rule{1.3ex}{1.3ex}}
+\renewcommand{\labelitemii}{\color{farbe3}\rule{1.3ex}{1.3ex}}
+\renewcommand{\labelitemiii}{\color{farbe2}\rule{1ex}{1ex}}
+\renewcommand{\labelitemiv}{\textbullet}
+
+
+\setdefaultenum						%Nummerierungssymbole (enumerate etc) ändern
+{\color{farbe1}\bfseries i)}			%Ebene 1,
+{\color{black}\bfseries a)}			%Ebene 2
+{\color{farbe2}\bfseries i.}			%Ebene 3
+{\color{black}\bfseries A.}			%Ebene 4
+
+
+
+%==============================================================================
+%design-befehle
+%==============================================================================
+
+\newcommand{\ausz}[1]{\textit{#1}}	%bei bedarf anpassen...
+	

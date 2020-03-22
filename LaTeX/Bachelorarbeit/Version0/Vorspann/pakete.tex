@@ -1,0 +1,194 @@
+%Pakete
+
+
+
+
+%======================================================
+%Standard-Mathe-Pakete
+%======================================================
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}		%theorem-umgebungen etc
+\usepackage{polynom}	%für polynomdivisonen
+
+\usepackage{textcomp}		%zusätzliche symbole
+
+
+%======================================================
+%rmfamily-Schriften mit Mathe-Unterstützung
+%======================================================
+
+
+%es folgt eine auflistung von schriften, wenn man mit der latex-standardschrift lmodern für die rmfamily (serifenschrift) nicht zufrieden ist. die jeweils zuletzt geladen schrift wird aktiviert). einfach enstprechendes prozent-zeichen der gewünschten schrift entfernen
+
+%\usepackage[sc]{mathpazo} % palatino mit mathe-schrift, recht breit
+
+%\usepackage{mathptmx}		%klassische times mit mathe-schrift
+
+%\usepackage{concrete}	%recht altbacken, schreibmaschinenähnlich: concrete
+
+%\usepackage[charter]{mathdesign}	%schrift charter mit matheschrift.	
+
+%\usepackage{fourier}  	%utopia mit fourier als matheschrift
+%\usepackage[utopia]{mathdesign}		%wie fourier, etwas mehr abstand als fourier in mathe-formeln
+
+%\usepackage{fouriernc}	%schoolbook mit fourier als mathe-schrift, recht altmodisch und niedrig
+
+%========abgestimmtes charter-paket=============
+%%siehe microtype-doku: pdf: http://mirror.unl.edu/ctan/macros/latex/contrib/microtype/microtype.pdf
+%%und source-code: http://mirrors.xmu.edu.cn/CTAN/macros/latex/contrib/microtype/microtype.dtx
+%\usepackage[charter]{mathdesign}	%charter mit matheschrift
+% \def\rmdefault{bch} % not scaled
+%\usepackage{sourcesanspro}	%sanserif-schrift passend für charter 
+%\makeatletter
+%\renewcommand{\SourceSansPro@scale}{1.02}
+%\makeatother
+%========ende abgestimmtes charter-paket=============
+  
+
+
+%======================================================
+%sf-family-Schriften: 
+%======================================================
+
+%eine auswahl an sanserif-schriften. Wer mit der latex-Standardschrift bei der sfamily nicht zufrieden ist, entfernt einfach das Prozentzeichen bei der gewünschten schrift.
+
+%\usepackage[math]{kurier} %angenehme schrift auch für fließtext mit matheschrift
+
+%\usepackage[scaled]{helvet}	%helvetica, recht breit, kombinierbar mit euler-matheschrift
+%\usepackage{euler}		%mathe-schrift zu helvetica
+
+%\usepackage[scaled]{berasans}	%bitstream vera sans, eher breit
+
+%\usepackage[default]{sourcesanspro}	%auch für fließtext, fett ist sehr aufdringlich
+
+%\usepackage{DejaVuSansCondensed} %relativ kompakt
+
+%\usepackage{libertine} %relativ verschnörkeld, schön für überschriften
+
+
+
+%======================================================
+%%fehlerhaft:
+%======================================================
+
+%\usepackage[bitstream-charter]{mathdesign}		%evtl fehler?
+%\usepackage[urw-garamond]{mathdesign}		%geht nicht
+%\usepackage{MinionPro}	% geht nicht...
+%\usepackage{mathmanx}	%geht nicht
+%\usepackage{pandora}		% geht nicht
+
+
+
+%======================================================
+%Hauptschriftfamily auswählen:
+%======================================================
+
+%\renewcommand{\familydefault}{\sfdefault}		%sans serif als Standard-Schrift, wenn gewünscht
+
+
+%======================================================
+%Schriften und physiaklische Einheiten
+%======================================================
+
+\usepackage[
+	detect-all,		%alle umgebungseinstellungen der schriften werden auf die Befehle \SI, \num, \si übertragen. Wenn nicht gewünscht: auskommentieren.
+	decimalsymbol=comma,
+	exponent-product=\cdot,   %Voreinstellung: \times (also z.B. 2 \times 10^3)
+	quotient-mode = fraction, %\num{2 / 3} wird als \frac{2}{3} übersetzt
+	%per-mode=fraction,		%in Einheiten Brüche
+	]{siunitx}
+
+
+
+%\AtBeginDocument{\sisetup{detect-family=false, math-rm=\mathrm, text-rm=\rmfamily}}			%sinnvolle option, wenn fließtext in sffamily ist, die mathe schrift aber nicht. mit dieser option werden einheiten und zahlen der Befehle \SI, \si, \num automatisch der mathematik-schrift angepasst
+
+
+
+
+
+
+
+%======================================================
+%Textsatz-Pakete
+%======================================================
+
+\usepackage[autostyle,german=guillemets]{csquotes} %nachträgliche umgestaltung von anführungszeichen
+\usepackage{paralist} %für compactitem
+\usepackage{enumitem} % für [label={\alph*)}] oder [label={\roman*)}] usw. bei normalen umgebungen
+
+\usepackage{setspace} %für Befehl \onehalfspacing
+\onehalfspacing %für 1,5-facher Zeilenabstand. 
+
+
+
+%======================================================
+%Grafiken-Pakete
+%======================================================
+
+\usepackage{graphicx}			%einbinden von grafiken
+\usepackage[x11names, table]{xcolor}		%ermöglichen von farben
+\usepackage{pdfpages} 		%einbinden ganzer pdf-seiten (z.B für Anhang etc)
+
+
+%tikz und pgf:
+\usepackage{pgf}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.8}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usetikzlibrary{arrows}	% bei darf weitere bibliotheken laden. einfach  googeln...
+
+\usepackage[framemethod=TikZ]{mdframed}			%Boxen mit Rahmen und Füllfarben
+
+%======================================================
+%ChehmiePakete
+%======================================================
+
+\usepackage{chemfig}		%strukturformeln zeichen
+
+\renewcommand*\printatom[1]{\ensuremath{\mathsf{#1}}} %schrift umstellen auf sanserif in strukturformeln
+%\setchemformula{format=\sffamily}
+\setdoublesep{0.25700 em}  % 'Bond Spacing'
+\setatomsep{2 em}%{1.78500 em}    % 'Fixed Length'
+\setbondoffset{0.18265 em} % 'Margin Width'
+\newcommand{\bondwidth}{0.09 em}%{0.06642 em} % 'Line Width'
+\setbondstyle{line width = \bondwidth}
+
+\usepackage[version=3]{mhchem}	%für chemische summenformeln
+
+
+%======================================================
+%Tabellen-Pakete
+%======================================================
+
+\usepackage{tabularx} 	%tabellen mit fester breite-> tabularx-Umgebung
+\usepackage{multirow} 	%verschmelzen von Zellen mittels multirow
+\usepackage{array}		%erweiterte funktionen bei TAbellen >{} oder @{}
+\usepackage{booktabs}		%befehle für abstände und Linien: \midrule etc
+
+
+%======================================================
+%Pakete für Inhaltsverzeichnisse und Einstellungen...
+%======================================================
+
+\usepackage{tocloft}		%Foramtierung Abbildung und Tabellenverzeichnis
+\usepackage{interfaces}
+
+
+%=======================================
+%Pakete zur Umschaltung von pdf-Digital-Version und Papierversion (größere Rand innen wegen Bindung)
+%=======================================
+
+\usepackage{ifthen}		%erlaubt if-Abfrage (für Druck-Web-Umschaltung): druck: png-grafiken, web:pdf-grafiken
+
+\newboolean{boolweb}
+\setboolean{boolweb}{true}		%web-version eingeschalten: true; druck einschalten: false
+
+%Syntax für boolweb:
+%	\ifthenelse{\boolean{boolweb}}
+%	{dann} 					%web= true-Anweisungen
+%	{ansonsten}				%web=false (also druck)-Anweiseungen
+

@@ -1,0 +1,84 @@
+%befehle Mathe
+
+
+
+
+%===================================================================
+%Befehle für Mengen
+%===================================================================
+
+\newcommand{\mN}{\mathbb{N}}
+\newcommand{\mZ}{\mathbb{Z}}
+\newcommand{\mQ}{\mathbb{Q}}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mC}{\mathbb{C}}
+
+\renewcommand{\Re}{\mathrm{Re}}
+\renewcommand{\Im}{\mathrm{Im}}
+
+\newcommand{\ee}{\mathrm{e}} %eulersche Zahl
+\newcommand{\ii}{\mathrm{i}} %imaginäre Einheit
+
+\newcommand{\mK}{\mathbb{K}}	%körper
+\newcommand{\mD}{\mathcal{D}} %definitionsbereich
+\newcommand{\mG}{\mathbb{G}} %grundmenge
+\newcommand{\mL}{\mathbb{L}} %lösungsmenge
+
+
+%===================================================================
+%Befehle für Normen/Metriken
+%===================================================================
+
+\newcommand{\absolut}[1]{\left\lvert#1\right\rvert}				%\betrag{zahl}
+\newcommand{\norm}[1]{\left\|#1\right\|}						%\norm{vektor}
+\newcommand{\ip}[2]{\left\langle #1,#2\right\rangle}			%\ip{v1}{v2}
+
+
+%===================================================================
+%Befehle für Ableitungen etc
+%===================================================================
+
+
+\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}			%\pdiff{f (x_1,x_2)}{x_1}
+\newcommand{\hpdiff}[3]{\frac{\partial^{#1} #2}{\partial #3^{#1}}}	%\hpdiff{3}{f(x_1,x_2)}{x_1}
+\newcommand{\diff}[2]{\frac{d #1}{d #2}}						%\diff{f(x)}{x}
+
+
+%===================================================================
+%Befehle fürs Integrieren
+%===================================================================
+
+\newcommand{\ints}{\int \limits}							%\ints_{unten}^{oben}
+\newcommand{\dd}[1]{\:\mathrm{d}{#1}}						%\dd{integrationsvariable}
+
+
+%===================================================================
+%Spezielle Brüche
+%===================================================================
+
+\newcommand{\pivier}{\frac{\pi}{4}}							
+\newcommand{\pihalb}{\frac{\pi}{2}}
+\newcommand{\oneover}[1]{\frac{1}{#1}}						%\oneover{nenner}
+
+
+%===================================================================
+%Befehle für Vektoren
+%===================================================================
+
+
+\newcommand{\vb}[1]{\mathbf{#1}}							%\vb{v} (vector-bold)
+\newcommand{\svek}[1]{\begin{pmatrix} #1 \end{pmatrix}}	 %Spaltenvektor		%\svek{x_1 \\ x_2 \\ x_3}
+\newcommand{\zvek}[1]{(#1)^T}		 %Spaltenvektor in Zeile geschreiben 				%\zvek{x_1,x_2,x_3}
+
+
+%===================================================================
+%Sonstiges
+%===================================================================
+
+\newcommand{\landau}[1]{\mathcal{O}(#1)}						%\landau{argument}
+\newcommand{\Mul}{\cdotp}									%a \Mul b
+\newcommand{\sums}{\sum\limits}							%\sums_{j=1}^{n}
+\newcommand{\prods}{\prod\limits}							%\prods_{j=1}^{n}
+\newcommand{\lims}{\lim\limits}							%\lims_{x \to \infty$
+\DeclareMathOperator{\sgn}{sgn}
+
