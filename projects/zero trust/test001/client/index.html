@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Messenger</title>
+  <script src="js/log.js" type="text/javascript"></script>
+  <script src="js/ui.js" type="text/javascript"></script>
+
+  <script src="js/config.js" type="text/javascript"></script>
+  <script src="js/encoding.js" type="text/javascript"></script>
+  <script src="js/utilities.js" type="text/javascript"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sjcl/1.0.8/sjcl.min.js" integrity="sha512-s0r9TyYSs5CusSDL5s/QEZQZ4DNYLDXx0S+imS+SHR9mw0Yd0Z5KNS9dw7levSp7GpjOZu/bndds3FEDrKd8dg==" crossorigin="anonymous"></script>
+
+  <script src="js/database.js" type="text/javascript"></script>
+  <script src="js/websocket.js" type="text/javascript"></script>
+
+  <script src="js/client.js" type="text/javascript"></script>
+</head>
+<body>
+  <h1>Personas</h1>
+  <div id="personas" />
+  Name: <input id="accountLabel" /><br/>
+  <button onclick="createAccount()">Create Account</button>
+
+  <div id="accounts">
+    
+  </div>
+
+
+  <h1>Contacts</h1>
+  <button onclick="sendMessageRequest()">Send Message</button><br/>
+  From: <input id="senderId" /><br/>
+  To: <input id="receiverId" /><br/>
+  (Name: <input id="receiverName" />)<br/>
+  Message: <input id="message" /><br/>
+
+  <div id="chats">
+
+  </div>
+</body>
+</html>
