@@ -8,33 +8,6 @@ function initializeDatabase(callback) {
 		return
 	}
 
-	let upgrades = [{
-		date: '2020-12-22'
-		, author: 'stefan kreiner'
-		, summary: 'create provider database and account store'
-		, database: 'database'
-		, upgrade: function(database) {
-	    	accountStore = database.createObjectStore('accounts', { keyPath: 'id' }); 
-  			accountStore.createIndex("active", "active", { unique: false });
-		}, success: function(database, callback) {
-			if(callback) {
-				callback();
-			}
-		}
-	}, {
-		date: '2020-12-22'
-		, author: 'stefan kreiner'
-		, summary: 'create package store'
-		, database: 'database'
-		, upgrade: function(database) {
-			database.createObjectStore('packages', { keyPath: ['accountId', 'key'] }); 
-		}, success: function(database, callback) {
-			if(callback) {
-				callback();
-			}
-		}
-	}];
-
 	info("upgrade database")
 	let databases = {};
 	function executeUpgrades(callback, startIndex=0) {
@@ -93,6 +66,34 @@ function initializeDatabase(callback) {
 			}
 		}
 	}
+
+	let upgrades = [{
+		date: '2020-12-22'
+		, author: 'stefan kreiner'
+		, summary: 'create provider database and account store'
+		, database: 'database'
+		, upgrade: function(database) {
+	    	let accountStore = database.createObjectStore('accounts', { keyPath: 'id' }); 
+  			accountStore.createIndex("active", "active", { unique: false });
+		}, success: function(database, callback) {
+			if(callback) {
+				callback();
+			}
+		}
+	}, {
+		date: '2020-12-22'
+		, author: 'stefan kreiner'
+		, summary: 'create package store'
+		, database: 'database'
+		, upgrade: function(database) {
+			let packageStore = database.createObjectStore('packages', { keyPath: ['accountId', 'id'] });  
+			packageStore.createIndex("deleted", "deleted", { unique: false });
+		}, success: function(database, callback) {
+			if(callback) {
+				callback();
+			}
+		}
+	}];
 	executeUpgrades(callback)
 }
 

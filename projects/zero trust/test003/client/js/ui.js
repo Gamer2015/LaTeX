@@ -26,7 +26,7 @@ function display() {
         let db = request.result;
         let transaction = db.transaction(['accounts', 'packages'])
         let index = transaction.objectStore('accounts').index('active');
-        index.openCursor(IDBKeyRange.only('true')).onsuccess = function(event) {
+        index.openCursor(IDBKeyRange.only(indexedDbTrue)).onsuccess = function(event) {
             let cursor = event.target.result;
             if(cursor) {
                 let account = cursor.value;
@@ -47,7 +47,8 @@ function display() {
                 let listItem = document.createElement('li');
 
                 listItem.innerHTML = '<span style="font-family: monospace">'
-                    + package.key + ' ' + package.data + '</span>' ;
+                    + package.accountId + ' ' + package.id + '</span><br/>'
+                    + package.data;
                 packageList.appendChild(listItem);  
 
                 cursor.continue();
@@ -57,27 +58,35 @@ function display() {
 }
 
 function importAccount() {
-    let account = {
-        id: document.getElementById('importAccountId').value,
-        secret: document.getElementById('importAccountSecret').value,
-        displayName: document.getElementById('importAccountName').value,
-        timestamp: 0,
-        active: 'true',
-    };
-    account.password = calculatePassword(account.secret);
-    account.dataKey = calculateDataKey(account.secret);
+    let id = document.getElementById('importAccountId').value;
+    let secret = document.getElementById('importAccountSecret').value;
+    let password = calculatePassword(secret);
+    let label = document.getElementById('importAccountName').value;
 
-    request = window.indexedDB.open('database')
-    request.onsuccess = function(event) {
-        let db = request.result;
-        let transaction = db.transaction(['accounts'], 'readwrite');
-        transaction.objectStore('accounts').put(account);
-        
-        transaction.oncomplete = function(event) {
-            display();
-            authenticate(account);
-        };
-    }
+    requestAccountsCallback({
+        successful: [{id: id}],
+    }, {
+        passwords: [password]
+        , callback: {
+            secrets: [secret]
+            , success: function(accounts) {
+                accounts[0].displayName = label;
+
+                request = window.indexedDB.open('database')
+                request.onsuccess = function(event) {
+                    let db = request.result;
+                    let transaction = db.transaction(['accounts'], 'readwrite');
+                    transaction.oncomplete = function(event) {
+                        display()
+                    };
+                    let store = transaction.objectStore('accounts');
+                    for(let account of accounts) {
+                        store.put(account);
+                    }
+                }
+            }
+        }
+    });
 }
 //
 function createAccount() {
@@ -105,7 +114,7 @@ function createAccount() {
 function savePackage() {
     let package = {
         accountId: document.getElementById('accountId').value,
-        key: document.getElementById('packageKey').value,
+        id: document.getElementById('packageId').value,
         data: document.getElementById('packageData').value
     }
     savePackages([package]);

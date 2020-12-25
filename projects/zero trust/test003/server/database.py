@@ -10,6 +10,7 @@ import secrets
 import bcrypt
 
 import functools
+import utilities
 
 idLength = 8
 
@@ -38,143 +39,223 @@ timestamp date
 """
 # never share without verifying
 def get(dbFileName, accounts):
-    if verify(dbFileName, accounts) == False:
-        return None
+    successList, failedList = verify(dbFileName, accounts)
 
     db = dbConnect(dbFileName)
     c = db.cursor()
 
-    data = []
-    for account in accounts:
+    packages = []
+    for account in successList:
         table = "accountStorage"
         fields = fieldNameList(c, table)
         c.execute("""
-            SELECT """ + fieldQuery(fields) + """
-            FROM """ + table + """ 
-            WHERE accountId=? 
-            AND timestamp > ?"""
-        , (account['id'], account["timestamp"]))
+            SELECT {fieldQuery}
+            FROM {table}
+            WHERE accountId = ? 
+            AND timestamp > ?
+        """.format(
+            fieldQuery=fieldQuery(fields),
+            table=table
+        ), (account['id'], account["timestamp"]))
 
         for row in c.fetchall():
             record = {}
             for field in fields:
                 record[field] = row[field]
-            data.append(record)
+            packages.append(record)
 
-    return data;
-
-
-# never save without verifying
-def save(dbFileName, accounts, packages):
-    if verify(dbFileName, accounts) == False:
-        return False
-
-    if isinstance(packages, list) == False:
-        packages = [packages]
-    elif len(packages) == 0:
-        return False
-
-    db = dbConnect(dbFileName)
-    c = db.cursor()
-
-    changes = set()
-    insertList = []
-    updateList = []
-    for account in accounts:
-        accPackages = [package for package in packages if package["accountId"] == account["id"]]
-        keys = [package["key"] for package in accPackages]
-        c.execute("""
-            SELECT timestamp, key, data
-            FROM accountStorage 
-            WHERE accountId=? 
-            AND key in ({keys})""".format(keys=placeholders(keys))
-        , tuple([account['id'], *keys]))
-
-        old = {}
-        for row in c.fetchall():
-            old[row["key"]] = row
-
-        for package in accPackages:
-            key = package["key"]
-            data = package["data"]
-            timestamp = datetime.datetime.now()
-            record = {
-                "accountId": account["id"],
-                "key": key,
-                "data": data,
-                "timestamp": timestamp,
-                "deleted" : package["deleted"],
-                "crypto" : package["crypto"],
-            }   
-            if key not in old:
-                insertList.append(record)
-                changes.add(account["id"])
-            else:
-                if data != old[key]["data"]:
-                    updateList.append(record)
-                    changes.add(account["id"])
-
-    insert(c, 'accountStorage', insertList)
-    update(c, 'accountStorage', updateList)
-    db.commit()
-
-    return changes
+    return packages, failedList;
 
 
-def verify(dbFileName, accounts):
-    if isinstance(accounts, list) == False:
-        accounts = [accounts]
-    elif len(accounts) == 0:
-        return True
-
-    db = dbConnect(dbFileName)
-    c = db.cursor()
-
-    # mapping
-    accounts = [{
-        'id': bytes.fromhex(account["id"])
-        , 'password': account["password"]
-    } for account in accounts]
-
-    ids = [account["id"] for account in accounts]
-    c.execute(""
-        + "SELECT id, password " 
-        + " FROM accounts "
-        + " WHERE id in (" + placeholders(ids) + ")"
-    , ids)
-
-    rows = {};
-    for row in c.fetchall():
-        rows[row["id"]] = row["password"]
-
-    success = True 
-    for account in accounts:
-        password = ' '*60 # 60 should be the length of the hashed password
-        if account["id"] in rows: 
-            password = rows[account["id"]]
-        else:
-            success = False
-        success = success and bcrypt.checkpw(account["password"], password)
-    return success
-
-def generateId():
+def generatePackageId():
     id = secrets.token_bytes(idLength) 
     while id[0] == 0:
         id =  secrets.token_bytes(idLength)
     return id
 
-def createAccounts(dbFileName, accounts):
-    if isinstance(accounts, list) == False:
-        accounts = [accounts]
-    elif len(accounts) == 0:
+def save(dbFileName, accounts, packages):
+    successList = []
+    failedList = []
+    if len(packages) == 0:
+        return successList, failedList
+
+    timestamp = datetime.datetime.now()
+    for package in packages:
+        package["timestamp"] = timestamp
+
+    # never save without verifying
+    accSuccess, accFailed = verify(dbFileName, accounts)
+    verifiedAccountIds = set([account["id"] for account in accSuccess])
+    unverifiedAccountIds = set([account["id"] for account in accFailed])
+
+    tmpPackages = []
+    for package in packages:
+        if package["accountId"] in verifiedAccountIds:
+            tmpPackages.append(package)
+        else:
+            failedList.append(package)
+    packages = tmpPackages
+
+
+    db = dbConnect(dbFileName)
+    c = db.cursor()
+
+    insertList = []
+    updateList = []
+
+    tmpPackages = []
+    for package in packages:
+        if package["_id"] != None:
+            insertList.append(package)
+        else:
+            tmpPackages.append(package)
+    packages = tmpPackages
+
+    for account in accSuccess:
+        accountId = account["id"]
+        accPackages = [package for package in packages if package["accountId"] == accountId]
+        ids = [package["id"] for package in accPackages]
+        c.execute("""
+            SELECT accountId, id, timestamp
+            FROM accountStorage 
+            WHERE accountId=? 
+            AND id in ({ids})
+        """.format(
+            ids=placeholders(ids)
+        ), tuple([accountId, *ids]))
+
+        old = {}
+        for row in c.fetchall():
+            old[row["id"]] = row
+
+        for package in accPackages:
+            if package["id"] not in old:
+                package["_id"] = package["id"]
+                insertList.append(package)
+            else:
+                updateList.append(package)
+
+    attempts = 1000000
+    for package in insertList:
+        for i in range(attempts):
+            package["id"] = generatePackageId()
+            try:
+                insert(c, 'accountStorage', package)
+                db.commit()
+                successList.append(package)
+                break
+            except:
+                if i == attempts-1:
+                    failedList.append(package)
+
+    try:
+        update(c, 'accountStorage', updateList)
+        db.commit()
+        successList.extend(updateList)
+    except:
+        failedList.extend(updateList)
+        pass
+
+    return successList, failedList
+
+
+
+def verify(dbFileName, accounts):
+    accounts = utilities.forceIterable(accounts)
+
+    db = dbConnect(dbFileName)
+    c = db.cursor()
+
+    ids = [account["id"] for account in accounts]
+    c.execute("""
+        SELECT id, password 
+        FROM accounts
+        WHERE id in ({ids})
+    """.format(
+        ids=placeholders(ids)
+    ), ids)
+
+    rows = {};
+    for row in c.fetchall():
+        rows[row["id"]] = row["password"]
+
+    successList = []
+    failedList = []
+    for account in accounts:
+        success = True 
+        password = '' # 60 should be the length of the hashed password
+        if account["id"] in rows: 
+            password = rows[account["id"]]
+        else:
+            success = False
+        success = success and bcrypt.checkpw(account["password"], password)
+        if success:
+            successList.append(account)
+        else:
+            failedList.append(account)
+    return successList, failedList
+
+
+def createAuthenticationEntities(dbFileName, table, passwords, entityIdGenerator):
+    passwords = utilities.forceIterable(passwords)
+
+    db = dbConnect(dbFileName)
+    c = db.cursor()
+
+    entities = [{
+        "password": password
+    } for password in passwords]
+
+    for entity in entities:
+        salt = bcrypt.gensalt()
+        entity['password'] = bcrypt.hashpw(entity['password'], salt)
+
+    # create entities
+    successList = []
+    failedList = []
+    attempts = 1000000
+    for entity in entities:
+        for i in range(attempts):
+            entity['id'] = entityIdGenerator()
+            try:
+                insert(c, table, entity)
+                db.commit()     
+                successList.append(entity)
+                break
+            except:
+                if i == attempts-1:
+                    failedList.append(entity)
+
+    return successList, failedList
+
+def generateAccountId():
+    id = secrets.token_bytes(idLength) 
+    while id[0] == 0:
+        id =  secrets.token_bytes(idLength)
+    return id
+def createAccounts(dbFileName, passwords):
+    return createAuthenticationEntities(dbFileName, 'accounts', passwords, generateAccountId)
+
+def generateDeviceId():
+    id = secrets.token_bytes(idLength) 
+    while id[0] == 0:
+        id =  secrets.token_bytes(idLength)
+    return id
+def createDevices(dbFileName, passwords):
+    return createAuthenticationEntities(dbFileName, 'devices', passwords, generateDeviceId)
+
+"""
+    if isinstance(passwords, list) == False:
+        passwords = [passwords]
+    elif len(passwords) == 0:
         return []
 
     db = dbConnect(dbFileName)
     c = db.cursor()
 
     accounts = [{
-        "password": account["password"]
-    } for account in accounts]
+        "password": password
+    } for password in passwords]
 
     for account in accounts:
         salt = bcrypt.gensalt()
@@ -202,6 +283,48 @@ def createAccounts(dbFileName, accounts):
         )
         db.commit()
         return None
+
+def createDevices(dbFileName, passwords):
+    if isinstance(passwords, list) == False:
+        passwords = [passwords]
+    elif len(passwords) == 0:
+        return []
+
+    db = dbConnect(dbFileName)
+    c = db.cursor()
+
+    devices = [{
+        "password": password
+    } for password in passwords]
+
+    for device in devices:
+        salt = bcrypt.gensalt()
+        device['password'] = bcrypt.hashpw(device['password'], salt)
+
+    # create devices
+    for device in devices:
+        for i in range(1000000):
+            device['id'] = generateId()
+            try:
+                insert(c, 'devices', device)
+                db.commit()     
+                device['inserted'] = True
+                break
+            except:
+                pass
+
+    if all([device["inserted"] for device in devices]):
+        return [device["id"] for device in devices];
+    else:
+        ids = [device["id"] for device in devices if device["inserted"]]
+        c.execute(""
+            + "DELETE FROM devices "
+            + "WHERE id in (" + placeholders(ids) + ")", ids
+        )
+        db.commit()
+        return None
+"""
+
 """
 def createUsers(dbFileName, users):
     db = dbConnect(dbFileName)
@@ -266,21 +389,23 @@ def tuples(objects, fields):
         ]) for obj in objects]
 
 def insert(cursor, table, objects):
-    if isinstance(objects, list) == False:
-        objects = [objects]
-    elif len(objects) == 0:
+    objects = utilities.forceList(objects)
+    if len(objects) == 0:
         return
 
+    # find columns of the table, only data in columns can be set
     fields = fieldNameList(cursor, table)
 
-    query = "INSERT INTO " + table + " VALUES (" + placeholders(fields) + ") "
-    values = tuples(objects, fields)
-    cursor.executemany(query, values)
+    cursor.executemany("""
+        INSERT INTO {table} VALUES ({fieldValues})
+    """.format(
+        table=table, 
+        fieldValues=placeholders(fields)
+    ), tuples(objects, fields))
 
 def update(cursor, table, objects):
-    if isinstance(objects, list) == False:
-        objects = [objects]
-    elif len(objects) == 0:
+    objects = utilities.forceList(objects)
+    if len(objects) == 0:
         return
 
     # find columns of the table, only data in columns can be updated
@@ -309,12 +434,15 @@ def update(cursor, table, objects):
     for category, objects in queryCategories.items():
         fields = category.split(" ")
 
-        query = "UPDATE " + table + """
-             SET """ + assignments(fields) + """
-             WHERE """ + queries(pkFields)
-        values = tuples(objects, [*fields, *pkFields])
-
-        cursor.executemany(query, values)
+        cursor.executemany("""
+            UPDATE {table}
+            SET {fieldAssignments}
+            WHERE {pkFieldQueries}
+        """.format(
+            table=table,
+            fieldAssignments=assignments(fields),
+            pkFieldQueries=queries(pkFields)
+        ), tuples(objects, [*fields, *pkFields]))
 
 def dbConnect(dbFileName):
     db = sqlite3.connect(dbFileName)
@@ -353,22 +481,38 @@ def initializeDatabase(dbFileName, differenceHistory):
         db.commit()
 
 def createAccountsDatabase(database, cursor):
-    cursor.execute("""CREATE TABLE accounts (
+    cursor.execute("""
+        CREATE TABLE accounts (
         id blob PRIMARY KEY
         , password NOT NULL
+    )""")
+    database.commit()  
+
+def createDevicesDatabase(database, cursor):
+    cursor.execute("""
+        CREATE TABLE accounts (
+        id blob PRIMARY KEY
+        , password NOT NULL
+    )""")    
+    database.commit()  
+
+def createAccountDevicesDatabase(database, cursor):
+    cursor.execute("""
+        CREATE TABLE accounts (
+        accountId blob NOT NULL
+        , deviceId blob NOT NULL
+        , PRIMARY KEY(accountId, deviceId)
     )""")    
     database.commit()  
 
 def createAccountStorage(database, cursor):
     cursor.execute("""
         CREATE TABLE accountStorage (
-        timestamp integer
-        , accountId blob NOT NULL
-        , key text NOT NULL
+        accountId blob NOT NULL
+        , id blob NOT NULL
+        , timestamp integer
         , data blob
-        , deleted text
-        , crypto text
-        , PRIMARY KEY(accountId, key)
+        , PRIMARY KEY(accountId, id)
     )""")
     cursor.execute('CREATE INDEX timestamp ON accountStorage(timestamp)')
     database.commit()
@@ -376,7 +520,9 @@ def createAccountStorage(database, cursor):
 def init(dbFileName):
     initializeDatabase(dbFileName, [
         createAccountsDatabase,
-        createAccountStorage
+        createAccountStorage,
+        #createDevicesDatabase,
+        #createDeviceAccountsDatabase
     ])
 
 """

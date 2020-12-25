@@ -14,6 +14,7 @@ import json
 import database
 import connections
 import messages
+import utilities
 
 # communication
 import secrets
@@ -35,29 +36,40 @@ async def sendMessage(client, dbFileName, message):
             """
 
 async def get(client, dbFileName, message):
-    accounts = message["accounts"]
+    accounts = utilities.unpackAccounts(message["accounts"])
 
-    packages = database.get(dbFileName, accounts)
+    packages, failedAccounts = database.get(dbFileName, accounts)
     await messages.respond(client, message, {
-        'status': 'success',
-        'packages': packages
+        'packages': utilities.packPackages(packages, set(["_id"])),
+        "failed": utilities.packAccounts(failedAccounts)
     })
 
 async def save(client, dbFileName, message):
-    accounts = message["accounts"]
-    packages = message["packages"]
+    accounts = utilities.unpackAccounts(message["accounts"])
+    packages = utilities.unpackPackages(message["packages"])
     
-    accountIds = database.save(dbFileName, accounts, packages) 
+    successList, failedList = database.save(dbFileName, accounts, packages) 
 
-    if accountIds != False and len(accountIds) != 0:
-        clients2accountIds = connections.getClients(accountIds)
-        clients2accountIds.pop(client, None)
-        for otherClient, accountIds in clients2accountIds.items():
-            accountIds = list(accountIds)
-            await messages.send(otherClient, 'packages changed', {
-                'accountIds': accountIds
-            })
+    print("successList           ", successList)
+    await messages.respond(client, message, {
+        "successful" : utilities.packPackages(successList, set(["data"])),
+        "failed" : utilities.packPackages(failedList, set(["data"]))
+    })
 
+    changedAccountIds = set([package["accountId"] for package in successList])
+    print("changedAccountIds1       ", changedAccountIds)
+    print("activeClients       ", connections.activeClients())
+    clients2accountIds = connections.getClients(changedAccountIds)
+    print("changedAccountIds2.5     ", clients2accountIds)
+    clients2accountIds.pop(client, None)
+    print("changedAccountIds2       ", clients2accountIds)
+    for otherClient, accountIds in clients2accountIds.items():
+        accountIds = list(accountIds)
+        print("accountIds           ", accountIds)
+        await messages.send(otherClient, 'packages changed', {
+            'accountIds': utilities.packBlobs(accountIds)
+        })
+"""
 async def delete(client, dbFileName, message):
     accounts = message["accounts"]
     packages = message["packages"]
@@ -72,34 +84,26 @@ async def delete(client, dbFileName, message):
             await messages.send(otherClient, 'packages changed', {
                 'accountIds': accountIds
             })
-
+"""
 async def authenticate(client, dbFileName, message):
-    accounts = message["accounts"]
-    success = database.verify(dbFileName, accounts)
+    accounts = utilities.unpackAccounts(message["accounts"])
+    successful, failed = database.verify(dbFileName, accounts)
     # activeSession = connections.activeSession(entities)
     # anyActive = connections.anyActive(entities)
     # more flexibility possible, but good enough for now
-    if success == False:
-        await messages.respond(client, message, {
-            'status': 'failed'
-        }); 
-    else:
-        connections.remember(client, accounts)
-        await messages.respond(client, message, {
-            'status': 'success'
-        });
+    connections.remember(client, [account["id"] for account in successful])
+    await messages.respond(client, message, {
+        "successful": utilities.packAccounts(successful),
+        "failed": utilities.packAccounts(failed)
+    });
 
 async def createAccounts(client, dbFileName, message):
-    ids = database.createAccounts(dbFileName, message["accounts"])
-    if ids == None:
-        await messages.respond(client, message, {
-            'status': 'failed', 
-        });
-    else:
-        await messages.respond(client, message, {
-            'status': 'success', 
-            'ids': [id.hex() for id in ids]
-        });
+    successful, failed = database.createAccounts(dbFileName, message["passwords"])
+
+    await messages.respond(client, message, {
+        "successful": utilities.packAccounts(successful),
+        "failed": utilities.packAccounts(failed)
+    });
 
 async def connector(client, path, dbFileName):
     # register(client) sends user_event() to client
@@ -121,8 +125,8 @@ async def connector(client, path, dbFileName):
                 await get(client, dbFileName, message)
             elif subject == "save":
                 await save(client, dbFileName, message)
-            elif subject == "delete":
-                await delete(client, dbFileName, message)
+            #elif subject == "delete":
+            #    await delete(client, dbFileName, message)
     finally:
         connections.forget(client)
 

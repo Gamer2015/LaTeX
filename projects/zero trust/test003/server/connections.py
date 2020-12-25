@@ -1,3 +1,5 @@
+import utilities
+
 accountId2clients = {}
 client2accountIds = {}
 
@@ -7,10 +9,10 @@ def verify(client, accountId):
 def activeEntities():
 	return len(accountId2clients.keys())
 def activeClients():
-	return len(client2accountIds.keys())
+	return client2accountIds
 
 def getClients(accountIds):
-	client2accountIds = {}
+	tmpClient2accountIds = {}
 	for accountId in accountIds:
 		try:
 			accountClients = accountId2clients[accountId]
@@ -19,12 +21,12 @@ def getClients(accountIds):
 
 		for client in accountClients:
 			try: 
-				clientAccountIds = client2accountIds[client]
+				clientAccountIds = tmpClient2accountIds[client]
 			except:
 				clientAccountIds = set()
 			clientAccountIds.add(accountId)
-			client2accountIds[client] = clientAccountIds
-	return client2accountIds
+			tmpClient2accountIds[client] = clientAccountIds
+	return tmpClient2accountIds
 
 def getAccountIds(client):
 	try:
@@ -49,22 +51,22 @@ def anyActive(accounts):
 	for client in clients:
 		return set(client2accountIds[client]) == set(channelIds)"""
 
-def remember(client, accounts):
-	if isinstance(accounts, list) == False:
-		accounts = [accounts]
+def remember(client, accountIds):
+	accountIds = utilities.forceSet(accountIds);
 	try:
 		clientAccountIds = client2accountIds[client]
 	except:
 		clientAccountIds = set()
-	clientAccountIds.update([account["id"] for account in accounts])
+	clientAccountIds.update(accountIds)
 	client2accountIds[client] = clientAccountIds
-	for account in accounts:
+	for accountId in accountIds:
 		try:
-			clients = accountId2clients[account["id"]]
+			clients = accountId2clients[accountId]
 		except:
 			clients = set()
 		clients.add(client)
-		accountId2clients[account["id"]] = clients
+		accountId2clients[accountId] = clients
+	print("clientsByAccountId", accountId2clients)
 
 def forget(client):
 	try:

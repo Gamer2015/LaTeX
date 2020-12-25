@@ -4,10 +4,13 @@ function encrypt(key, data) {
 function decrypt(key, data, para,) {
 	return sjcl.decrypt(key, data);
 }
+function generateRandom(bytes, paranoia=0) {
+	return sjcl.codec.hex.fromBits(sjcl.random.randomWords(bytes, paranoia));
+}
 function generateMessageIds(number=1) {
 	let messageIds = [];
 	for(let i = 0; i < number; ++i) {
-		messageIds.push(sjcl.codec.hex.fromBits(sjcl.random.randomWords(requestTokenLength, 0)))
+		messageIds.push(generateRandom(requestTokenLength));
 	}
 	return messageIds;
 }
@@ -18,7 +21,7 @@ function generateSecrets(number=1) {
 	}
 	return secrets;
 }
-function calculateDataKey(secret) {
+function calculateEncryptionKey(secret) {
 	for(let i = 0; i < dataKeyCycles; ++i) {
 		secret = sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(secret))
 	}
@@ -29,13 +32,4 @@ function calculatePassword(secret) {
 		secret = sjcl.codec.hex.fromBits(sjcl.hash.sha256.hash(secret))
 	}
 	return secret;
-}
-function calculatePasswords(secrets) {
-	if(Array.isArray(secrets) == false) {
-		secrets = [secrets];
-	}
-	for(let i = 0; i < secrets.length; ++i) {
-		secrets[i] = calculatePassword(secrets[i])
-	}
-	return secrets;
 }
