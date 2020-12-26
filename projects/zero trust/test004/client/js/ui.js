@@ -25,15 +25,14 @@ function display() {
     request.onsuccess = function(event) {
         let db = request.result;
         let transaction = db.transaction(['accounts', 'packages'])
-        let index = transaction.objectStore('accounts').index('active');
-        index.openCursor(IDBKeyRange.only(indexedDbTrue)).onsuccess = function(event) {
+        transaction.objectStore('accounts').openCursor().onsuccess = function(event) {
             let cursor = event.target.result;
             if(cursor) {
                 let account = cursor.value;
                 let listItem = document.createElement('li');
 
                 listItem.innerHTML = '<span style="font-family: monospace">'
-                    + 'Account Id: ' + account.id + '; Secret: ' + account.secret+'</span><br/><br/>' ;
+                    + 'AccountId: ' + account.id + '<br/>Secret: ' + account.secret+'</span><br/><br/>' ;
                 accountList.appendChild(listItem);  
 
                 cursor.continue();
@@ -46,8 +45,9 @@ function display() {
                 let listItem = document.createElement('li');
 
                 listItem.innerHTML = '<span style="font-family: monospace">'
-                    + 'Account Id: ' + package.accountId + "; Package Id: " + package.id+'</span><br/>'
-                    + package.data + '<br/><br/>' ;
+                    + 'AccountId: ' + package.accountId + "<br/>"
+                    + "PackageId: " + package.id+'</span><br/>'
+                    + 'Data: ' + package.data + '<br/><br/>' ;
                 packageList.appendChild(listItem);  
 
                 cursor.continue();
@@ -57,21 +57,34 @@ function display() {
 }
 
 function importAccount() {
-    let id = document.getElementById('importAccountId').value;
-    let secret = document.getElementById('importAccountSecret').value;
-    let password = calculatePassword(secret);
 
-    requestAccountsCallback({
-        successful: [{id: id}],
-    }, {
-        passwords: [password]
-        , callback: {
-            secrets: [secret]
-            , success: function(accounts) {
-                display();
-            }
+    let accounts = [{
+        id: document.getElementById('importAccountId').value,
+        secret: document.getElementById('importAccountSecret').value
+    }];
+    populateAccountKeyFields(accounts);
+
+    authenticateFromMemory(accounts, function(serverData, clientData) {
+        if(serverData.successful.length != 0) {
+            info("authentication successful", serverData.successful);
+
+            requestAccountsCallback({
+                accounts: accounts.map(function(account) { return {
+                    id: account.id
+                }}),
+            }, {
+                callback: {
+                    accounts: accounts
+                    , success: function(accounts) {
+                        display();
+                    }
+                }
+            });
+        } 
+        if(serverData.failed.length != 0) {
+            error("authentication request failed", serverData.failed);
         }
-    });
+    })
 }
 //
 function createAccount() {

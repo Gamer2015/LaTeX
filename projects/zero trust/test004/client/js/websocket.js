@@ -73,7 +73,7 @@ function refreshPackages(accountIds) {
 
         if(accounts.length == 0) {
             return;
-        }
+        }        
         websocket.send("get", {
             accounts: prepareAccounts(accounts)
             , callback: {
@@ -157,8 +157,7 @@ function getLocalAccountMap(accountIds, callback, transaction=null) {
 
     let accounts = {};
     if(accountIds == true) {
-        let index = transaction.objectStore('accounts').index('active');
-        index.openCursor(IDBKeyRange.only(indexedDbTrue)).onsuccess = function(event) {
+        transaction.objectStore('accounts').openCursor().onsuccess = function(event) {
             let cursor = event.target.result;
             if(cursor) {
                 let account = cursor.value;
@@ -225,14 +224,7 @@ function preparePackages(packages, accounts) {
     });
 }
 
-function populateNewPackageIds(packages, callback) {
-    let unpopulatedCount = 0;
-    for(let package of packages) {
-        if(package.id == null || package.id.length == 0) {
-            ++unpopulatedCount;
-        }
-    }
-
+function populatePackageIds(packages, callback) {
     // get temporary package ids
     let packageIds = new Set();
 
@@ -253,22 +245,32 @@ function populateNewPackageIds(packages, callback) {
 
         transaction.oncomplete = function() {
             for(let package of packages) {
-                let tmpId;
-                if(package.id == null || package.id.length == 0) {
-                    let tmpId = 0;
-                    while(tmpId == 0 || packageIds.has(tmpId)) {
-                        tmpId = generateRandom(packageIdLength);
-                    }
+                // make synced calls to generate ids if necessary
+                // doing this in sync to avoid threading issues
+                // this may be a little slower if most of the packages have a valid id
+                db.transaction('packages').objectStore('packages').get([
+                    package.accountId, package.id
+                ]).onsuccess = function(event) {
+                    let tmp = event.target.result;
+                    if(tmp == null) { // invalid keys
+                        let tmpId = 0;
+                        while(tmpId == 0 || packageIds.has(tmpId)) {
+                            tmpId = generateRandom(packageIdLength);
+                        }
 
-                    package.id = tmpId; 
-                    package._id = tmpId;
-                    packageIds.add(tmpId); 
+                        package.id = tmpId; 
+                        package._id = tmpId;
+                        packageIds.add(tmpId); 
+                    }
                 }
             }
 
-            if(callback) {
-                callback(packages);
-            }
+            // gather all transactions in a new transaction
+            db.transaction('packages').oncomplete = function(event) {
+                if(callback) {
+                    callback(packages);
+                }
+            }; 
         }
     }
 }
@@ -365,7 +367,7 @@ function savePackages(packages) {
         return;
     }
 
-    populateNewPackageIds(packages, function(packages) {
+    populatePackageIds(packages, function(packages) {
         window.indexedDB.open('database').onsuccess = function(event) {
             let db = event.target.result;
 
@@ -373,7 +375,6 @@ function savePackages(packages) {
             getLocalAccountMap(accountIds, function(accountMap) {
                 accounts = accountMap;
 
-                
                 { // only process packages with a valid account attached
                     let invalidAccounts = [];
                     let validPackages = [];
@@ -444,41 +445,43 @@ function authenticationCallback(serverData, clientData) {
         }
     }
 }
-function authenticate(accountIds) {
+function authenticateFromMemory(accounts, callback=authenticationCallback) {
+    if(accounts.length == 0) {
+        return;
+    }
+    websocket.send("authenticate", {
+        accounts: prepareAccounts(accounts)
+        , callback: {
+            callback: callback
+        }
+    });
+}
+function authenticate(accountIds, callback) {
     getLocalAccountMap(accountIds, function(accountMap) {
         let accounts = Object.values(accountMap);
-
-        if(accounts.length == 0) {
-            return;
-        }
-        websocket.send("authenticate", {
-            accounts: prepareAccounts(accounts)
-            , callback: {
-                callback: authenticationCallback
-            }
-        });
+        authenticateFromMemory(accounts, callback);
     });
 }
 
 
-// 
+// used in import accounts, simulating a server response
 function requestAccountsCallback(serverData, clientData) {
-    let secrets = clientData.callback.secrets;
-    if(serverData.successful.length != secrets.length) {
-        error("not all inserts were successful, abort ...");
-        return;
+    if(serverData.accounts.length != clientData.callback.accounts.length) {
+        warning("not all accounts were inserted successfully, only storing those that were ..");
     }
 
+
     let createdAccounts = [];
-    for(let i = 0; i < serverData.successful.length; ++i) {
-        createdAccounts.push({
-            id: serverData.successful[i].id,
-            secret: secrets[i],
-            password: clientData.passwords[i],
-            encryptionKey: calculateEncryptionKey(secrets[i]),
-            timestamp: 0,
-            active: indexedDbTrue,
-        });
+    for(let i = 0; i < serverData.accounts.length; ++i) {
+        let accountId = serverData.accounts[i].id;
+        if(accountId == null) {
+            // not inserted successfully
+            continue;
+        }
+
+        let account = clientData.callback.accounts[i];
+        account.id = accountId;
+        createdAccounts.push(account);
     }
 
     request = window.indexedDB.open('database');
@@ -503,18 +506,27 @@ function requestAccountsCallback(serverData, clientData) {
         };
     }
 }
+
+function populateAccountKeyFields(accounts) {
+    return accounts.map(function(account) { 
+        account.password = calculatePassword(account.secret);
+        account.encryptionKey = calculateEncryptionKey(account.secret);
+        return account;
+    });
+}
 // server-side database operation integration
 function requestAccounts(success, error, number=1) {
-    let secrets = generateSecrets(number);
-    let passwords = secrets.map(function(secret) {
-        return calculatePassword(secret);
+    let accounts = generateSecrets(number).map(function(secret) { 
+        return populateAccountKeyFields([{
+            secret: secret,
+        }])[0];
     });
     // sjcl.decrypt("password", "encrypted-data")
 
     websocket.send("create accounts", {
-        passwords: passwords
+        accounts: prepareAccounts(accounts)
         , callback: {
-            secrets: secrets
+            accounts: accounts
             , success: success
             , error: error
             , callback: requestAccountsCallback

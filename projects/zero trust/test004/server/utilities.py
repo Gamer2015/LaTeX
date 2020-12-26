@@ -3,6 +3,7 @@ def forceIterable(entities):
         return entities
     if isinstance(entities, list):
         return entities
+
     try:
         if(isinstance(entities, str)):
             raise Exception
@@ -33,7 +34,7 @@ def forceList(entities):
     try:
         if(isinstance(entities, str)):
             raise Exception
-        if(isinstance(entities, object)):
+        if(isinstance(entities, object) and isinstance(entities, set) == False):
             raise Exception
         entities = list(entities)
     except:
@@ -48,7 +49,8 @@ def unpack(entities, fields):
     for entity in entities:
         tmp = {}
         for field in fields:
-            tmp[field] = entity[field] if field in entity and entity[field] != None else None
+            if field in entity:
+                tmp[field] = entity[field] 
         tmps.append(tmp)
     return tmps
 
@@ -63,7 +65,8 @@ def hex2bytes(entities, fields):
 
     for entity in entities:
         for field in fields:
-            entity[field] = bytes.fromhex(entity[field]) if field in entity and entity[field] != None else None
+            if field in entity:
+                entity[field] = bytes.fromhex(entity[field])
     return entities
 def bytes2hex(entities, fields):
     entities = forceIterable(entities)
@@ -71,7 +74,8 @@ def bytes2hex(entities, fields):
 
     for entity in entities:
         for field in fields:
-            entity[field] = entity[field].hex() if field in entity and entity[field] != None else None
+            if field in entity:
+                entity[field] = entity[field].hex()
     return entities
 
 def unpackAccounts(accounts):

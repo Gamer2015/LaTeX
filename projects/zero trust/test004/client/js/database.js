@@ -74,7 +74,6 @@ function initializeDatabase(callback) {
 		, database: 'database'
 		, upgrade: function(database) {
 	    	let accountStore = database.createObjectStore('accounts', { keyPath: 'id' }); 
-  			accountStore.createIndex("active", "active", { unique: false });
 		}, success: function(database, callback) {
 			if(callback) {
 				callback();

@@ -56,7 +56,7 @@ def get(dbFileName, accounts):
         """.format(
             fieldQuery=fieldQuery(fields),
             table=table
-        ), (account['id'], account["timestamp"]))
+        ), (account['id'], account["timestamp"] if "timestamp" in account else 0))
 
         for row in c.fetchall():
             record = {}
@@ -105,7 +105,9 @@ def save(dbFileName, accounts, packages):
 
     tmpPackages = []
     for package in packages:
-        if package["_id"] != None:
+        print("package:         ", package)
+        if "_id" in package:
+            print("package _id:         ", package["_id"])
             # all of those want to get a new id
             insertList.append(package)
         else:
@@ -199,23 +201,20 @@ def verify(dbFileName, accounts):
     return successList, failedList
 
 
-def createAuthenticationEntities(dbFileName, table, passwords, entityIdGenerator):
-    passwords = utilities.forceIterable(passwords)
-
+def createAuthenticationEntities(dbFileName, table, entities, entityIdGenerator):
     db = dbConnect(dbFileName)
     c = db.cursor()
 
+    # abstract away the local changes we will make to the entities
     entities = [{
-        "password": password
-    } for password in passwords]
+        "password": entity["password"]
+    } for entity in entities]
 
     for entity in entities:
         salt = bcrypt.gensalt()
         entity['password'] = bcrypt.hashpw(entity['password'], salt)
 
     # create entities
-    successList = []
-    failedList = []
     attempts = 1000000
     for entity in entities:
         for i in range(attempts):
@@ -223,30 +222,29 @@ def createAuthenticationEntities(dbFileName, table, passwords, entityIdGenerator
             try:
                 insert(c, table, entity)
                 db.commit()     
-                successList.append(entity)
                 break
             except:
                 if i == attempts-1:
-                    failedList.append(entity)
+                    entity['id'] = None
 
-    return successList, failedList
+    return entities
 
 def generateAccountId():
     id = secrets.token_bytes(idLength) 
     while id[0] == 0:
         id =  secrets.token_bytes(idLength)
     return id
-def createAccounts(dbFileName, passwords):
-    return createAuthenticationEntities(dbFileName, 'accounts', passwords, generateAccountId)
-
+def createAccounts(dbFileName, accounts):
+    return createAuthenticationEntities(dbFileName, 'accounts', accounts, generateAccountId)
+"""
 def generateDeviceId():
     id = secrets.token_bytes(idLength) 
     while id[0] == 0:
         id =  secrets.token_bytes(idLength)
     return id
-def createDevices(dbFileName, passwords):
-    return createAuthenticationEntities(dbFileName, 'devices', passwords, generateDeviceId)
-
+def createDevices(dbFileName, devices):
+    return createAuthenticationEntities(dbFileName, 'devices', devices, generateDeviceId)
+"""
 """
     if isinstance(passwords, list) == False:
         passwords = [passwords]

@@ -48,6 +48,8 @@ async def save(client, dbFileName, message):
     accounts = utilities.unpackAccounts(message["accounts"])
     packages = utilities.unpackPackages(message["packages"])
     
+    print("packages before          ", message["packages"])
+    print("packages after         ", packages)
     successList, failedList = database.save(dbFileName, accounts, packages) 
 
     print("successList           ", successList)
@@ -98,11 +100,10 @@ async def authenticate(client, dbFileName, message):
     });
 
 async def createAccounts(client, dbFileName, message):
-    successful, failed = database.createAccounts(dbFileName, message["passwords"])
+    accounts = database.createAccounts(dbFileName, message["accounts"])
 
     await messages.respond(client, message, {
-        "successful": utilities.packAccounts(successful),
-        "failed": utilities.packAccounts(failed)
+        "accounts": utilities.packAccounts(accounts),
     });
 
 async def connector(client, path, dbFileName):
