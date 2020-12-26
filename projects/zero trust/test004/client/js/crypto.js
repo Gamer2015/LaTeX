@@ -1,3 +1,5 @@
+sjcl.random.startCollectors();
+
 function encrypt(key, data) {
 	return sjcl.encrypt(key, data);
 }
@@ -5,7 +7,9 @@ function decrypt(key, data, para,) {
 	return sjcl.decrypt(key, data);
 }
 function generateRandom(bytes, paranoia=0) {
-	return sjcl.codec.hex.fromBits(sjcl.random.randomWords(bytes, paranoia));
+	return sjcl.codec.hex.fromBits(
+		sjcl.random.randomWords(Math.ceil(bytes / 4), paranoia)
+	).substring(0, 2*bytes);
 }
 function generateMessageIds(number=1) {
 	let messageIds = [];
@@ -17,7 +21,7 @@ function generateMessageIds(number=1) {
 function generateSecrets(number=1) {
 	let secrets = [];
 	for(let i = 0; i < number; ++i) {
-		secrets.push(sjcl.codec.hex.fromBits(sjcl.random.randomWords(secretLength, 0)))
+		secrets.push(generateRandom(secretLength));
 	}
 	return secrets;
 }

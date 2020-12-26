@@ -106,6 +106,7 @@ def save(dbFileName, accounts, packages):
     tmpPackages = []
     for package in packages:
         if package["_id"] != None:
+            # all of those want to get a new id
             insertList.append(package)
         else:
             tmpPackages.append(package)
@@ -130,6 +131,8 @@ def save(dbFileName, accounts, packages):
 
         for package in accPackages:
             if package["id"] not in old:
+                # create a new record if none exist with that id
+                # store id in _id so that the client will know which package this is
                 package["_id"] = package["id"]
                 insertList.append(package)
             else:

@@ -33,8 +33,7 @@ function display() {
                 let listItem = document.createElement('li');
 
                 listItem.innerHTML = '<span style="font-family: monospace">'
-                    + account.displayName + ' ' + account.id + ' ' + displayId(account.id)
-                    + '</br>' + account.secret+'</span>' ;
+                    + 'Account Id: ' + account.id + '; Secret: ' + account.secret+'</span><br/><br/>' ;
                 accountList.appendChild(listItem);  
 
                 cursor.continue();
@@ -47,8 +46,8 @@ function display() {
                 let listItem = document.createElement('li');
 
                 listItem.innerHTML = '<span style="font-family: monospace">'
-                    + package.accountId + ' ' + package.id + '</span><br/>'
-                    + package.data;
+                    + 'Account Id: ' + package.accountId + "; Package Id: " + package.id+'</span><br/>'
+                    + package.data + '<br/><br/>' ;
                 packageList.appendChild(listItem);  
 
                 cursor.continue();
@@ -61,7 +60,6 @@ function importAccount() {
     let id = document.getElementById('importAccountId').value;
     let secret = document.getElementById('importAccountSecret').value;
     let password = calculatePassword(secret);
-    let label = document.getElementById('importAccountName').value;
 
     requestAccountsCallback({
         successful: [{id: id}],
@@ -70,43 +68,15 @@ function importAccount() {
         , callback: {
             secrets: [secret]
             , success: function(accounts) {
-                accounts[0].displayName = label;
-
-                request = window.indexedDB.open('database')
-                request.onsuccess = function(event) {
-                    let db = request.result;
-                    let transaction = db.transaction(['accounts'], 'readwrite');
-                    transaction.oncomplete = function(event) {
-                        display()
-                    };
-                    let store = transaction.objectStore('accounts');
-                    for(let account of accounts) {
-                        store.put(account);
-                    }
-                }
+                display();
             }
         }
     });
 }
 //
 function createAccount() {
-    let label = document.getElementById('accountLabel').value;
-
     requestAccounts(function(accounts) {
-        accounts[0].displayName = label;
-
-        request = window.indexedDB.open('database')
-        request.onsuccess = function(event) {
-            let db = request.result;
-            let transaction = db.transaction(['accounts'], 'readwrite');
-            transaction.oncomplete = function(event) {
-                display()
-            };
-            let store = transaction.objectStore('accounts');
-            for(let account of accounts) {
-                store.put(account);
-            }
-        }
+        display();
     });
 }
 
