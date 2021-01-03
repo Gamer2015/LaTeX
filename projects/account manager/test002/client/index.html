@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Messenger</title>
+  <script src="js/log.js" type="text/javascript"></script>
+  <script src="js/ui.js" type="text/javascript"></script>
+
+  <script src="js/config.js" type="text/javascript"></script>
+  <script src="js/encoding.js" type="text/javascript"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sjcl/1.0.8/sjcl.min.js" integrity="sha512-s0r9TyYSs5CusSDL5s/QEZQZ4DNYLDXx0S+imS+SHR9mw0Yd0Z5KNS9dw7levSp7GpjOZu/bndds3FEDrKd8dg==" crossorigin="anonymous"></script>
+  <script src="js/crypto.js" type="text/javascript"></script>
+
+  <script src="js/database.js" type="text/javascript"></script>
+  <script src="js/websocket.js" type="text/javascript"></script>
+
+  <script src="js/client.js" type="text/javascript"></script>
+</head>
+<body>
+  <span id="login">
+    <h1>Accounts</h1>
+    <button onclick="createAccount()">Create Account</button><br/>
+    Username: <input id="createUsername" /><br/>
+    Secret: <input id="createSecret" /><br/><br/>
+
+    <button onclick="login()">Login</button><br/>
+      Username: <input id="loginUsername" /><br/>
+      Secret: <input id="loginSecret" /><br/><br/>
+    </span>
+
+    <h1>Logged in: </h1>
+    <div id="accounts"></div>
+    <h1>Packages</h1>
+    <div id="packages"></div>
+
+    <h1>Currently Selected</h1>
+    <div id="account"></div>
+
+</body>
+</html>

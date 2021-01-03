@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Messenger</title>
+  <script src="js/log.js" type="text/javascript"></script>
+  <script src="js/ui.js" type="text/javascript"></script>
+
+  <script src="js/config.js" type="text/javascript"></script>
+  <script src="js/encoding.js" type="text/javascript"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sjcl/1.0.8/sjcl.min.js" integrity="sha512-s0r9TyYSs5CusSDL5s/QEZQZ4DNYLDXx0S+imS+SHR9mw0Yd0Z5KNS9dw7levSp7GpjOZu/bndds3FEDrKd8dg==" crossorigin="anonymous"></script>
+  <script src="js/crypto.js" type="text/javascript"></script>
+
+  <script src="js/database.js" type="text/javascript"></script>
+  <script src="js/websocket.js" type="text/javascript"></script>
+
+  <script src="js/client.js" type="text/javascript"></script>
+</head>
+<body>
+  <span id="login">
+    <h1>Sign Up</h1>
+      <button onclick="signUpWithAuthy()">Authy</button><br/>
+    <h1>Login</h1>
+      <button onclick="loginWithAuthy()">Authy</button><br/>
+  </span>
+  <script type="text/javascript">
+function signUpWithAuthy() {
+  
+
+  var childWin = window.open("authy.html", "_blank", "height=400, width=550, status=yes, toolbar=no, menubar=no, location=no,addressbar=no"); 
+  childWin.serverToLogin = "SERVER_ID";
+}
+function authenticateWithAuthy() {
+    var childWin = window.open("authy.html", "_blank", "height=400, width=550, status=yes, toolbar=no, menubar=no, location=no,addressbar=no"); 
+    childWin.serverToLogin = "SERVER_ID";
+}
+function openChildWin() {   
+    var childWin = window.open("authy.html", "_blank", "height=400, width=550, status=yes, toolbar=no, menubar=no, location=no,addressbar=no"); 
+}
+function setValue(val1) {
+   // do your logic here
+}
+
+  </script>
+</body>
+</html>
