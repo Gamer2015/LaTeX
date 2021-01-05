@@ -1,0 +1,56 @@
+
+{% block content %}
+  <h2>Welcome, {{ user.username }}!</h2>
+{% endblock %}
+
+	<a href="{% url 'accounts:deleteTokens' %}">
+	    Delete Tokens
+	</a>
+
+	<!--
+	<a href="{% url 'accounts:generateToken' %}">
+	    Generate Token
+	</a>
+	<a href="{% url 'accounts:generateIdentifier' %}">
+	    Generate Identifier
+	</a> -->
+
+{% if tokens %}
+	<table>
+		<tr>
+			<th>secret</th>
+			<th>valid</th>
+			<th>expiration</th>
+		</tr>
+
+
+    {% for token in tokens %}
+    	<tr>
+    		<td>{{ token.secret }}</td>
+    		<td>{{ token.valid }}</td>
+    		<td>{{ token.expiration }}</td>
+    	</tr>
+    {% endfor %}
+    </table>
+{% else %}
+    <p>No tokens are available.</p>
+{% endif %}
+
+{% if identifiers %}
+	<table>
+		<tr>
+			<th>user id</th>
+			<th>identifier</th>
+		</tr>
+
+
+    {% for identifier in identifiers %}
+    	<tr>
+    		<td>{{ identifier.user_id }}</td>
+    		<td>{{ identifier.id }}</td>
+    	</tr>
+    {% endfor %}
+    </table>
+{% else %}
+    <p>No identifiers are available.</p>
+{% endif %}
